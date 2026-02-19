@@ -191,7 +191,7 @@
                     </h5>
                     <div class="d-flex align-items-center gap-2">
                         <input type="month" class="form-control" style="max-width: 180px"
-                               wire:model="selectedMonth">
+                               wire:model.live="selectedMonth">
                         <button class="btn btn-outline-primary" wire:click="loadMonthHistory">
                             <i class="ri ri-file-chart-line me-1"></i>Consultar
                         </button>
