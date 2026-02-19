@@ -83,7 +83,10 @@
                         <div>
                             <h6 class="text-muted mb-2">Total Ingresos</h6>
                             <h3 class="mb-0">
-                                <x-dual-currency :amount="$caja->total_ingresos" />
+                                <span class="text-success fw-bold">${{ number_format($this->totalUsdPagos, 2, '.', ',') }}</span>
+                                @if($this->totalBsPagos)
+                                    <small class="d-block text-muted">Bs. {{ number_format($this->totalBsPagos, 2, ',', '.') }}</small>
+                                @endif
                             </h3>
                         </div>
                         <div class="bg-success bg-opacity-10 p-3 rounded">
@@ -100,7 +103,10 @@
                         <div>
                             <h6 class="text-muted mb-2">Monto Final</h6>
                             <h3 class="mb-0">
-                                <x-dual-currency :amount="$caja->monto_final" />
+                                <span class="text-success fw-bold">${{ number_format($this->totalUsdPagos, 2, '.', ',') }}</span>
+                                @if($this->totalBsPagos)
+                                    <small class="d-block text-muted">Bs. {{ number_format($this->totalBsPagos, 2, ',', '.') }}</small>
+                                @endif
                             </h3>
                         </div>
                         <div class="bg-info bg-opacity-10 p-3 rounded">
@@ -163,7 +169,10 @@
                                         </td>
                                         <td class="text-end">{{ $metodo->cantidad }}</td>
                                         <td class="text-end fw-semibold">
-                                            <x-dual-currency :amount="$metodo->total" class="fw-semibold" />
+                                            <span class="text-success fw-bold">${{ number_format($metodo->total, 2, '.', ',') }}</span>
+                                            @if($metodo->total_bs > 0)
+                                                <small class="d-block text-muted">Bs. {{ number_format($metodo->total_bs, 2, ',', '.') }}</small>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -199,7 +208,12 @@
                                     <tr>
                                         <td>{{ $concepto['concepto'] }}</td>
                                         <td class="text-end">{{ $concepto['cantidad'] }}</td>
-                                        <td class="text-end fw-semibold"><x-dual-currency :amount="$concepto['total']" /></td>
+                                        <td class="text-end fw-semibold">
+                                            <span class="text-success fw-bold">${{ number_format($concepto['total'], 2, '.', ',') }}</span>
+                                            @if(($concepto['total_bs'] ?? 0) > 0)
+                                                <small class="d-block text-muted">Bs. {{ number_format($concepto['total_bs'], 2, ',', '.') }}</small>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
@@ -256,7 +270,12 @@
                                             <i class="{{ $iconClass }} me-1"></i>
                                             {{ ucfirst($pago->metodo_pago) }}
                                         </td>
-                                        <td class="text-end fw-semibold"><x-dual-currency :amount="$pago->total" /></td>
+                                        <td class="text-end fw-semibold">
+                                            <span class="text-success fw-bold">${{ number_format($pago->total, 2, '.', ',') }}</span>
+                                            @if($pago->total_bolivares)
+                                                <small class="d-block text-muted">Bs. {{ number_format($pago->total_bolivares, 2, ',', '.') }}</small>
+                                            @endif
+                                        </td>
                                         <td>{{ $pago->created_at->format('H:i') }}</td>
                                         <td>
                                             @if($pago->estado === 'aprobado')

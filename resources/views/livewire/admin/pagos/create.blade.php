@@ -117,8 +117,17 @@
                                     <i class="ri ri-calendar-line text-success me-2"></i>
                                     <label class="form-label mb-0 fw-medium">Fecha</label>
                                 </div>
-                                <input type="date" wire:model="fecha_pago" class="form-control form-control-sm @error('fecha_pago') is-invalid @enderror">
+                                <input type="date" wire:model.change="fecha_pago" class="form-control form-control-sm @error('fecha_pago') is-invalid @enderror">
                                 @error('fecha_pago') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                @if($fecha_pago && $tasa_cambio)
+                                <div class="alert alert-info mt-2 py-2 px-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fw-medium">Tasa según fecha</span>
+                                        <span class="fw-bold">{{ number_format($tasa_cambio, 4, ',', '.') }} Bs/$</span>
+                                    </div>
+                                    <small class="text-muted">Fecha: {{ \Carbon\Carbon::parse($fecha_pago)->format('d/m/Y') }}</small>
+                                </div>
+                                @endif
                             </div>
                         </div>
 

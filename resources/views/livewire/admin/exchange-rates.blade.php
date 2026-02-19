@@ -175,6 +175,149 @@
     </div>
     @endif
 
+    <!-- Histórico mensual -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 d-flex align-items-center gap-2">
+                        <i class="ri ri-calendar-2-line"></i>
+                        Histórico por Mes
+                        @if(isset($monthHistoryExists) && $monthHistoryExists)
+                            <span class="badge bg-success">Guardado</span>
+                        @else
+                            <span class="badge bg-secondary">Pendiente</span>
+                        @endif
+                    </h5>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="month" class="form-control" style="max-width: 180px"
+                               wire:model="selectedMonth">
+                        <button class="btn btn-outline-primary" wire:click="loadMonthHistory">
+                            <i class="ri ri-file-chart-line me-1"></i>Consultar
+                        </button>
+                        @if(isset($monthHistoryExists) && $monthHistoryExists)
+                            <button class="btn btn-success" wire:click="saveMonthHistory">
+                                <i class="ri ri-save-3-line me-1"></i>Actualizar histórico
+                            </button>
+                        @else
+                            <button class="btn btn-success" wire:click="saveMonthHistory">
+                                <i class="ri ri-save-3-line me-1"></i>Guardar en histórico
+                            </button>
+                        @endif
+                        <button class="btn btn-outline-success" wire:click="backfillMonthFromBCV" @if($isBackfilling) disabled @endif>
+                            <i class="ri ri-database-2-line me-1"></i>
+                            @if($isBackfilling) Rellenando... @else Rellenar mes (BCV) @endif
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if($showMonthHistory)
+                        <div class="row g-4 mb-3">
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="text-muted">Periodo</div>
+                                    <div class="fw-bold">{{ $monthStats['period'] ?? '' }}</div>
+                                    <small class="text-muted">Registros: {{ $monthStats['records'] ?? 0 }}</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="text-muted">Estado</div>
+                                    @if(isset($monthHistoryExists) && $monthHistoryExists)
+                                        <div>Guardado</div>
+                                        <small class="text-muted">
+                                            Última generación: {{ $monthHistoryInfo['generated_at'] ?? 'N/A' }}
+                                            @if(($monthHistoryInfo['daily_count'] ?? 0) > 0)
+                                                · Registros guardados: {{ $monthHistoryInfo['daily_count'] }}
+                                            @endif
+                                        </small>
+                                    @else
+                                        <div>Pendiente de guardar</div>
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="text-muted">USD</div>
+                                    <div>Prom: <span class="fw-bold">{{ number_format($monthStats['usd']['avg'] ?? 0, 4) }}</span></div>
+                                    <div>Min: <span class="fw-bold">{{ number_format($monthStats['usd']['min'] ?? 0, 4) }}</span></div>
+                                    <div>Max: <span class="fw-bold">{{ number_format($monthStats['usd']['max'] ?? 0, 4) }}</span></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="text-muted">EUR</div>
+                                    <div>Prom: <span class="fw-bold">
+                                        {{ isset($monthStats['eur']['avg']) ? number_format($monthStats['eur']['avg'], 4) : 'N/A' }}
+                                    </span></div>
+                                    <div>Min: <span class="fw-bold">
+                                        {{ isset($monthStats['eur']['min']) ? number_format($monthStats['eur']['min'], 4) : 'N/A' }}
+                                    </span></div>
+                                    <div>Max: <span class="fw-bold">
+                                        {{ isset($monthStats['eur']['max']) ? number_format($monthStats['eur']['max'], 4) : 'N/A' }}
+                                    </span></div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border rounded p-3 h-100">
+                                    <div class="text-muted">Fuentes</div>
+                                    <div>
+                                        @if(!empty($monthStats['sources']))
+                                            @foreach($monthStats['sources'] as $src)
+                                                <span class="badge bg-label-info me-1">{{ $src }}</span>
+                                            @endforeach
+                                        @else
+                                            <span class="text-muted">N/A</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>USD (Bs.)</th>
+                                        <th>EUR (Bs.)</th>
+                                        <th>Fuente</th>
+                                        <th>Hora</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($monthRates as $rate)
+                                        <tr>
+                                            <td>
+                                                {{ ($rate->date instanceof \Carbon\Carbon ? $rate->date : \Carbon\Carbon::parse($rate->date))->format('d/m/Y') }}
+                                            </td>
+                                            <td>
+                                                {{ $rate->usd_rate !== null ? number_format($rate->usd_rate, 4) : 'N/A' }}
+                                            </td>
+                                            <td>
+                                                {{ $rate->eur_rate !== null ? number_format($rate->eur_rate, 4) : 'N/A' }}
+                                            </td>
+                                            <td>{{ $rate->source ?? 'N/A' }}</td>
+                                            <td>
+                                                @if($rate->fetch_time)
+                                                    {{ $rate->fetch_time instanceof \Carbon\Carbon ? $rate->fetch_time->format('H:i') : \Carbon\Carbon::parse($rate->fetch_time)->format('H:i') }}
+                                                @else
+                                                    N/A
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <p class="text-muted mb-0">Seleccione un mes y presione “Consultar” para ver el histórico.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Edición -->
     @if($showEditModal)
         <div class="modal fade show" style="display: block; background: rgba(0,0,0,0.5);" tabindex="-1">

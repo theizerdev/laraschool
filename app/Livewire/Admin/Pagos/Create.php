@@ -12,6 +12,8 @@ use App\Models\PaymentSchedule;
 use App\Models\Serie;
 use App\Models\Caja;
 use App\Services\PagoService;
+use App\Services\ExchangeRateService;
+use Carbon\Carbon;
 use DB;
 class Create extends Component
 {
@@ -59,6 +61,7 @@ class Create extends Component
         'matricula_id' => 'required|exists:matriculas,id',
         'tipo_pago' => 'required|in:factura,boleta,nota_credito,recibo,comunidad educativa,educacion adulto',
         'fecha' => 'required|date',
+        'fecha_pago' => 'required|date',
         'metodo_pago' => 'required',
         'detalles' => 'required|array|min:1',
         'detalles.*.concepto_pago_id' => 'required|exists:conceptos_pago,id',
@@ -69,12 +72,12 @@ class Create extends Component
         'metodos_pago_mixto.*.monto' => 'required|numeric|min:0',
     ];
 
-   
+
 
     public function mount()
     {
         $this->fecha = now()->format('Y-m-d');
-        //$this->fecha_pago = now()->format('Y-m-d');
+        $this->fecha_pago = now()->format('Y-m-d');
         $this->cargarTasaCambio();
         $this->cargarDatos();
         $this->verificarCajaAbierta();
@@ -82,7 +85,7 @@ class Create extends Component
         $this->inicializarPagoMixto();
         $this->cargarPlantillasPago();
         $this->checkWhatsAppStatus();
-        
+
         //dd($this->checkWhatsAppStatus());
     }
 
@@ -96,11 +99,26 @@ class Create extends Component
 
     public function cargarTasaCambio()
     {
+        $fecha = $this->fecha_pago ?: $this->fecha;
+        if ($fecha) {
+            $service = new ExchangeRateService();
+            $rate = $service->getUsdRateForDate(Carbon::parse($fecha));
+            if ($rate) {
+                $this->tasa_cambio = $rate;
+                $this->mostrar_bolivares = true;
+                return;
+            }
+        }
         $tasaHoy = \App\Models\ExchangeRate::getTodayRate();
         if ($tasaHoy) {
             $this->tasa_cambio = $tasaHoy->usd_rate;
             $this->mostrar_bolivares = true;
         }
+    }
+
+    public function updatedFechaPago($value)
+    {
+        $this->cargarTasaCambio();
     }
 
     public function verificarCajaAbierta()
@@ -239,7 +257,7 @@ class Create extends Component
         $query = Serie::where('tipo_documento', $this->tipo_pago)
                      ->where('activo', true);
 
-    
+
         $this->serie_actual = $query->first();
 
         if ($this->serie_actual) {
@@ -377,13 +395,13 @@ class Create extends Component
     private function enviarNotificacionWhatsApp($pago, $matricula)
     {
         $result = ['sent' => false, 'attempted' => false, 'destinatario' => null];
-        
-        
+
+
 
         try {
               $estudiante = $matricula->student;
             $esMayorDeEdad = \Carbon\Carbon::parse($estudiante->fecha_nacimiento)->age >= 18;
-            
+
             $telefono = null;
             $nombreDestino = null;
 
@@ -400,21 +418,21 @@ class Create extends Component
 
             $result['attempted'] = true;
             $result['destinatario'] = $nombreDestino;
-            
+
             $mensaje = $this->generarMensajePago($pago, $estudiante, $esMayorDeEdad);
             $telefonoFormateado = $this->formatPhoneNumber($telefono);
-            
+
             $whatsappService = new \App\Services\WhatsAppService();
             $whatsappResult = $whatsappService->sendMessage($telefonoFormateado, $mensaje);
-           
+
             $result['sent'] = $whatsappResult && ($whatsappResult['success'] ?? false);
-            
+
         } catch (\Exception $e) {
 
             \Log::error('Error enviando notificación WhatsApp de pago: ' . $e->getMessage());
             $result['attempted'] = true;
         }
-        
+
         return $result;
     }
 
@@ -422,7 +440,7 @@ class Create extends Component
     {
         $nombreEstudiante = $estudiante->nombres . ' ' . $estudiante->apellidos;
         $totalFormateado = '$' . number_format($pago->total, 2, ',', '.');
-        
+
         if ($esMayorDeEdad) {
             $mensaje = "💳 *Pago Recibido - U.E JOSE MARIA VARGAS*\n\n";
             $mensaje .= "Estimado/a {$nombreEstudiante},\n\n";
@@ -432,7 +450,7 @@ class Create extends Component
             $mensaje .= "Estimado/a {$representante},\n\n";
             $mensaje .= "Hemos recibido el pago del estudiante *{$nombreEstudiante}*.\n\n";
         }
-        
+
         $mensaje .= "📄 *Detalles del Pago:*\n";
         $mensaje .= "• Número de Recibo: *{$pago->numero_completo}*\n";
         $mensaje .= "• Fecha: {$pago->fecha->format('d/m/Y')}\n";
@@ -440,17 +458,17 @@ class Create extends Component
         if ($pago->referencia) {
             $mensaje .= "• Referencia: {$pago->referencia}\n";
         }
-        
+
         $mensaje .= "\n📋 *Conceptos Pagados:*\n";
         foreach ($pago->detalles as $detalle) {
             $montoDetalle = '$' . number_format($detalle->precio_unitario * $detalle->cantidad, 2, ',', '.');
             $mensaje .= "• {$detalle->descripcion}: {$montoDetalle}\n";
         }
-        
+
         $mensaje .= "\n💰 *Total Pagado: {$totalFormateado}*\n\n";
         $mensaje .= "Gracias por su pago puntual.\n\n";
         $mensaje .= "*U.E JOSE MARIA VARGAS*";
-        
+
         return $mensaje;
     }
 
@@ -459,17 +477,17 @@ class Create extends Component
         $empresa = \DB::table('empresas')->where('id', 1)->first();
         $pais = $empresa ? \DB::table('pais')->where('id', $empresa->pais_id)->first() : null;
         $codigoPais = $pais ? $pais->codigo_telefonico : '58';
-        
+
         $cleaned = preg_replace('/[^0-9]/', '', $number);
-        
+
         if (strlen($cleaned) > 10 && str_starts_with($cleaned, $codigoPais)) {
             return $cleaned;
         }
-        
+
         if (str_starts_with($cleaned, '0')) {
             $cleaned = substr($cleaned, 1);
         }
-        
+
         return $codigoPais . $cleaned;
     }
 
@@ -478,19 +496,19 @@ class Create extends Component
         try {
             $apiUrl = config('whatsapp.api_url', 'http://localhost:3001');
             $apiKey = config('whatsapp.api_key', 'test-api-key-vargas-centro');
-            
+
             // Verificar si el servicio está disponible
             $healthResponse = \Http::timeout(3)->get($apiUrl . '/health');
             if (!$healthResponse->successful()) {
                 $this->whatsappStatus = 'disconnected';
                 return;
                 }
-                
+
                 // Obtener estado de conexión
                 $response = \Http::withHeaders(['X-API-Key' => $apiKey])
                 ->timeout(5)
                 ->get($apiUrl . '/api/whatsapp/status');
-                
+
                 if ($response->successful()) {
                     $data = $response->json();
                     $this->whatsappStatus = $data['connectionState'] ?? 'disconnected';
@@ -515,17 +533,17 @@ class Create extends Component
             foreach ($this->metodos_pago_mixto as $index => $metodo) {
                 if (!empty($metodo['referencia'])) {
                     $valorLimpio = preg_replace('/[^a-zA-Z0-9\-]/', '', $metodo['referencia']);
-                    
+
                     // Buscar en el campo referencia directo
                     $existeReferenciaDirecta = \App\Models\Pago::where('referencia', $valorLimpio)
                         ->where('estado', 'aprobado')
                         ->exists();
-                    
+
                     // Buscar en el campo detalles_pago_mixto (JSON)
                     $existeEnDetalles = \App\Models\Pago::where('estado', 'aprobado')
                         ->whereJsonContains('detalles_pago_mixto', [['referencia' => $valorLimpio]])
                         ->exists();
-                    
+
                     if ($existeReferenciaDirecta || $existeEnDetalles) {
                         session()->flash('error', 'La referencia "' . $metodo['referencia'] . '" ya fue utilizada en otro pago.');
                         return;
@@ -535,15 +553,15 @@ class Create extends Component
         } elseif (!empty($this->referencia)) {
             // Validar referencia para pago no mixto
             $valorLimpio = preg_replace('/[^a-zA-Z0-9\-]/', '', $this->referencia);
-            
+
             $existeReferenciaDirecta = \App\Models\Pago::where('referencia', $valorLimpio)
                 ->where('estado', 'aprobado')
                 ->exists();
-            
+
             $existeEnDetalles = \App\Models\Pago::where('estado', 'aprobado')
                 ->whereJsonContains('detalles_pago_mixto', [['referencia' => $valorLimpio]])
                 ->exists();
-            
+
             if ($existeReferenciaDirecta || $existeEnDetalles) {
                 session()->flash('error', 'La referencia "' . $this->referencia . '" ya fue utilizada en otro pago.');
                 return;
@@ -554,7 +572,7 @@ class Create extends Component
 
        try {
         DB::transaction(function () {
-            
+
 
             $matricula = Matricula::find($this->matricula_id);
 
@@ -588,7 +606,7 @@ class Create extends Component
             } elseif ($whatsappResult['attempted']) {
                 $mensaje .= ' - No se pudo enviar notificación WhatsApp';
             }
-            
+
             session()->flash('message', $mensaje);
             return redirect()->route('admin.pagos.create');
         });
@@ -602,14 +620,21 @@ class Create extends Component
      */
     public function updatedMetodosPagoMixto($value, $key)
     {
-       
-        
+
+
         // Si el cambio es en una referencia, procesar la validación
         if (str_contains($key, 'referencia')) {
             $this->validarReferenciaMixto($value, $key);
         }
     }
     
+    public function updated($property, $value)
+    {
+        if ($property === 'fecha_pago' || $property === 'fecha') {
+            $this->cargarTasaCambio();
+        }
+    }
+
     /**
      * Validar referencia en tiempo real
      */
@@ -618,24 +643,24 @@ class Create extends Component
         // Extraer el índice del array
         $parts = explode('.', $key);
         $index = $parts[0] ?? null;
-        
+
         if ($index !== null && isset($this->metodos_pago_mixto[$index])) {
             // Limpiar la referencia
             $valorLimpio = trim($value);
             $valorLimpio = preg_replace('/[^a-zA-Z0-9\-]/', '', $valorLimpio);
-            
+
             // Validar que la referencia no exista en la base de datos
             if (!empty($valorLimpio)) {
                 // Buscar en el campo referencia directo
                 $existeReferenciaDirecta = \App\Models\Pago::where('referencia', $valorLimpio)
                     ->where('estado', 'aprobado')
                     ->exists();
-                
+
                 // Buscar en el campo detalles_pago_mixto (JSON)
                 $existeEnDetalles = \App\Models\Pago::where('estado', 'aprobado')
                     ->whereJsonContains('detalles_pago_mixto', [['referencia' => $valorLimpio]])
                     ->exists();
-                
+
                 // Verificar si existe en cualquiera de los dos lugares
                 if ($existeReferenciaDirecta || $existeEnDetalles) {
                     // Usar $this->addError para mostrar el error en el campo específico
@@ -670,18 +695,18 @@ class Create extends Component
             // Limpiar la referencia
             $valorLimpio = trim($value);
             $valorLimpio = preg_replace('/[^a-zA-Z0-9\-]/', '', $valorLimpio);
-            
+
             if (!empty($valorLimpio)) {
                 // Buscar en el campo referencia directo
                 $existeReferenciaDirecta = \App\Models\Pago::where('referencia', $valorLimpio)
                     ->where('estado', 'aprobado')
                     ->exists();
-                
+
                 // Buscar en el campo detalles_pago_mixto (JSON)
                 $existeEnDetalles = \App\Models\Pago::where('estado', 'aprobado')
                     ->whereJsonContains('detalles_pago_mixto', [['referencia' => $valorLimpio]])
                     ->exists();
-                
+
                 // Verificar si existe en cualquiera de los dos lugares
                 if ($existeReferenciaDirecta || $existeEnDetalles) {
                     $this->addError('referencia', 'Esta referencia ya fue utilizada en otro pago.');
@@ -705,13 +730,13 @@ class Create extends Component
 
             // Actualizar el valor limpio
             $this->metodos_pago_mixto[$index]['referencia'] = $valorLimpio;
-            
+
             // Si el método de pago es efectivo, la referencia debe estar vacía
             $metodoPago = $this->metodos_pago_mixto[$index]['metodo'] ?? '';
             if (in_array($metodoPago, ['efectivo_bolivares', 'efectivo_dolares'])) {
                 $this->metodos_pago_mixto[$index]['referencia'] = '';
             }
-            
+
             // Emitir evento para notificar cambios
             $this->dispatch('referencia-mixto-actualizada', [
                 'index' => $index,
@@ -719,5 +744,5 @@ class Create extends Component
                 'metodo' => $metodoPago
             ]);
         }
-    
+
 }
