@@ -14,11 +14,7 @@
                                 <small class="text-muted d-block">Última actualización: {{ $lastUpdate }}</small>
                                 <small class="text-muted">Horarios: 10:00 AM y 2:00 PM</small>
                             </div>
-                            @can('edit exchange-rates')
-                                <button wire:click="editRate" class="btn btn-warning">
-                                    <i class="ri ri-edit-line me-1"></i>Editar Tasa
-                                </button>
-                            @endcan
+
                             <button wire:click="fetchNow" class="btn btn-primary">
                                 <i class="ri ri-refresh-line me-1"></i>Actualizar Ahora
                             </button>
@@ -131,11 +127,7 @@
                 <div class="card-header bg-primary text-white">
                     <div class="d-flex justify-content-between align-items-center">
                         <h5 class="mb-0"><i class="ri ri-exchange-dollar-line me-2"></i>Tasa del Día</h5>
-                        @can('edit exchange-rates')
-                        <button wire:click="editRate({{ $todayRate->id }})" class="btn btn-light btn-sm">
-                            <i class="ri ri-edit-line me-1"></i>Editar Tasa
-                        </button>
-                        @endcan
+
                     </div>
                 </div>
                 <div class="card-body">
@@ -326,7 +318,7 @@
                     <div class="modal-header">
                         <h5 class="modal-title">
                             <i class="ri ri-edit-line me-2"></i>
-                            {{ $editingRate ? 'Editar Tasa de Cambio' : 'Crear Tasa Manual' }}
+                            {{ 'Crear Tasa Manual' }}
                         </h5>
                         <button type="button" class="btn-close" wire:click="closeEditModal"></button>
                     </div>
