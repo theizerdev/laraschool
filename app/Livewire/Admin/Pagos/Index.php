@@ -298,7 +298,7 @@ class Index extends Component
 
         // Información del pago (alineada a la izquierda)
         $pdf->SetFont('Arial', 'B', 8);
-        $pdf->Cell(30, 5, 'Nro. Recibo:', 0, 0, 'L');
+        $pdf->Cell(30, 5, 'FACTURA NRO:', 0, 0, 'L');
         $pdf->SetFont('Arial', '', 8);
         // Extraer solo el número después del guión
         $numeroRecibo = explode('-', $pago->numero_completo);

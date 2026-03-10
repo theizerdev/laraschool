@@ -1,6 +1,6 @@
 # WhatsApp API v2 - Instituto Vargas
 
-API completa de WhatsApp usando Baileys para el U.E JOSE MARIA VARGAS con soporte multi-empresa dinámico.
+API completa de WhatsApp usando Baileys para el U.E VARGAS II con soporte multi-empresa dinámico.
 
 ## ✨ Características Principales
 
