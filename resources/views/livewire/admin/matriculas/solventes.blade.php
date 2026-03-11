@@ -70,62 +70,7 @@
         </div>
     </div>
 
-    <!-- Financial Stats Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h4 class="mb-1">@money($ingresosTotales)</h4>
-                            <p class="mb-0">Ingresos Totales</p>
-                        </div>
-                        <div class="avatar">
-                            <span class="avatar-initial rounded bg-label-info">
-                                <i class="ri ri-money-dollar-circle-line ri-24px"></i>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h4 class="mb-1">{{ $matriculasSolventes }}</h4>
-                            <p class="mb-0">Matrículas Solventes</p>
-                        </div>
-                        <div class="avatar">
-                            <span class="avatar-initial rounded bg-label-success">
-                                <i class="ri ri-wallet-3-line ri-24px"></i>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h4 class="mb-1">{{ $matriculasPendientes }}</h4>
-                            <p class="mb-0">Matrículas Pendientes</p>
-                        </div>
-                        <div class="avatar">
-                            <span class="avatar-initial rounded bg-label-danger">
-                                <i class="ri ri-alert-line ri-24px"></i>
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    
 
     <div class="row">
         <div class="col-12">
