@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('subject_prerequisites')) {
+            return;
+        }
+
         Schema::create('subject_prerequisites', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('subject_id'); // Materia que tiene prerrequisito

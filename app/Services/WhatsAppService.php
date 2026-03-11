@@ -144,13 +144,13 @@ class WhatsAppService
                 ]);
             }
 
-            return $response->successful() ? $response->json() : null;
+            return $response->json();
         } catch (\Exception $e) {
             Log::error('WhatsApp Send Message Error: ' . $e->getMessage(), [
                 'company_id' => $this->companyId,
                 'to' => $to
             ]);
-            return null;
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 

@@ -147,6 +147,7 @@ class Create extends Component
     {
         if (strlen($value) >= 2) {
             $query = Matricula::with(['student', 'programa'])
+             ->where('solvente', 0)
                 ->whereHas('student', function($q) use ($value) {
                     $q->where('nombres', 'like', '%' . $value . '%')
                       ->orWhere('apellidos', 'like', '%' . $value . '%')
@@ -155,6 +156,9 @@ class Create extends Component
                 })
                 ->orWhereHas('programa', function($q) use ($value) {
                     $q->where('nombre', 'like', '%' . $value . '%');
+                })
+                ->whereHas('paymentSchedules', function($q) {
+                    $q->where('estado', 'pendiente');
                 });
 
             if (auth()->check() && !auth()->user()->hasRole('Super Administrador')) {
@@ -523,15 +527,15 @@ class Create extends Component
     public function guardar()
     {
         // Validación especial para pago mixto
-        if ($this->es_pago_mixto && $this->totalPagoMixto != $this->total) {
+       if($this->es_pago_mixto && $this->totalPagoMixto != $this->total) {
             session()->flash('error', 'El total configurado en el pago mixto debe coincidir con el total a pagar.');
             return;
         }
 
         // Validar referencias duplicadas antes de guardar
-        if ($this->es_pago_mixto) {
+       if($this->es_pago_mixto) {
             foreach ($this->metodos_pago_mixto as $index => $metodo) {
-                if (!empty($metodo['referencia'])) {
+               if (!empty($metodo['referencia'])) {
                     $valorLimpio = preg_replace('/[^a-zA-Z0-9\-]/', '', $metodo['referencia']);
 
                     // Buscar en el campo referencia directo
@@ -544,7 +548,7 @@ class Create extends Component
                         ->whereJsonContains('detalles_pago_mixto', [['referencia' => $valorLimpio]])
                         ->exists();
 
-                    if ($existeReferenciaDirecta || $existeEnDetalles) {
+                   if($existeReferenciaDirecta || $existeEnDetalles) {
                         session()->flash('error', 'La referencia "' . $metodo['referencia'] . '" ya fue utilizada en otro pago.');
                         return;
                     }
@@ -562,13 +566,16 @@ class Create extends Component
                 ->whereJsonContains('detalles_pago_mixto', [['referencia' => $valorLimpio]])
                 ->exists();
 
-            if ($existeReferenciaDirecta || $existeEnDetalles) {
+           if($existeReferenciaDirecta || $existeEnDetalles) {
                 session()->flash('error', 'La referencia "' . $this->referencia . '" ya fue utilizada en otro pago.');
                 return;
             }
         }
 
-
+        // AUTO-ASIGNAR payment_schedule_id basado en descripción si no está asignado
+       if($this->matricula_id && !empty($this->detalles)) {
+            $this->detalles = $this->autoAsignarPaymentSchedules($this->detalles, $this->matricula_id);
+        }
 
        try {
         DB::transaction(function () {
@@ -601,9 +608,9 @@ class Create extends Component
             // Enviar notificación por WhatsApp y esperar respuesta
             $whatsappResult = $this->enviarNotificacionWhatsApp($pago, $matricula);
             $mensaje = 'Pago registrado exitosamente: ' . $pago->numero_completo;
-            if ($whatsappResult['sent']) {
+           if($whatsappResult['sent']) {
                 $mensaje .= ' - Notificación WhatsApp enviada a ' . $whatsappResult['destinatario'];
-            } elseif ($whatsappResult['attempted']) {
+            } elseif($whatsappResult['attempted']) {
                 $mensaje .= ' - No se pudo enviar notificación WhatsApp';
             }
 
@@ -613,6 +620,52 @@ class Create extends Component
         } catch (\Throwable $th) {
             session()->flash('error', 'Error al crear el pago: ' . $th->getMessage());
         }
+    }
+
+    /**
+     * Auto-asigna payment_schedule_id a los detalles basándose en la descripción
+     * cuando no está explícitamente asignado
+     */
+    private function autoAsignarPaymentSchedules(array $detalles, int $matriculaId): array
+    {
+       if (!$matriculaId) {
+            return $detalles;
+        }
+
+        // Cargar todos los payment schedules de la matrícula
+        $schedules = PaymentSchedule::where('matricula_id', $matriculaId)
+            ->orderBy('numero_cuota')
+            ->get()
+            ->keyBy('numero_cuota'); // Indexar por número de cuota para acceso rápido
+
+        foreach ($detalles as &$detalle) {
+            // Si ya tiene payment_schedule_id, saltar
+           if (!empty($detalle['payment_schedule_id'])) {
+                continue;
+            }
+
+            $descripcion = $detalle['descripcion'] ?? '';
+            $monto = $detalle['precio_unitario'] ?? 0;
+
+            // Intentar extraer número de cuota de la descripción
+          if(preg_match('/Cuota\s+#?(\d+)/i', $descripcion, $matches)) {
+                $numeroCuota = (int)$matches[1];
+                
+              if(isset($schedules[$numeroCuota])) {
+                    $schedule = $schedules[$numeroCuota];
+                    
+                    // Verificar si el monto coincide (con tolerancia de 0.01)
+                  if(abs($monto - $schedule->monto) < 0.01 || 
+                       abs($monto- $schedule->saldo_pendiente) < 0.01) {
+                        
+                        // Asignar payment_schedule_id
+                       $detalle['payment_schedule_id'] = $schedule->id;
+                    }
+                }
+            }
+        }
+
+        return $detalles;
     }
 
     /**

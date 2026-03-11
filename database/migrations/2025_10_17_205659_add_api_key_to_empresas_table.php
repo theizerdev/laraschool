@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('empresas', 'api_key')) {
+            return;
+        }
+
         Schema::table('empresas', function (Blueprint $table) {
             $table->string('api_key', 64)->nullable()->unique()->after('status');
         });

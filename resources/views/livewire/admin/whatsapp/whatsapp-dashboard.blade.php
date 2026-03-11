@@ -15,7 +15,7 @@
                                 Actualizando...
                             @else
                                 <i class="ri-refresh-line me-2"></i>
-                                Actualizar
+                                Actualizars
                             @endif
                         </button>
                         <a href="{{ route('admin.whatsapp.connection') }}" class="btn btn-outline-primary">
@@ -97,6 +97,47 @@
                         </div>
                     </div>
                 </div>
+                <div class="row mt-2">
+                    <div class="col-sm-4">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-md mx-auto mb-2">
+                                    <span class="avatar-initial rounded bg-info">
+                                        <i class="ri-bar-chart-2-line mdi-20px"></i>
+                                    </span>
+                                </div>
+                                <h6 class="mb-1">Enviados (servicio)</h6>
+                                <h5 class="mb-0">{{ number_format($metrics['messagesSent']) }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-md mx-auto mb-2">
+                                    <span class="avatar-initial rounded bg-warning">
+                                        <i class="ri-alert-line mdi-20px"></i>
+                                    </span>
+                                </div>
+                                <h6 class="mb-1">Fallidos (servicio)</h6>
+                                <h5 class="mb-0">{{ number_format($metrics['messagesFailed']) }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body text-center">
+                                <div class="avatar avatar-md mx-auto mb-2">
+                                    <span class="avatar-initial rounded bg-secondary">
+                                        <i class="ri-time-line mdi-20px"></i>
+                                    </span>
+                                </div>
+                                <h6 class="mb-1">p95 Latencia (s)</h6>
+                                <h5 class="mb-0">{{ $metrics['latencyP95'] !== null ? number_format($metrics['latencyP95'], 2) : 'N/A' }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -165,10 +206,7 @@
                             <div class="text-center py-4">
                                 <i class="ri-inbox-line ri-3x text-muted mb-3"></i>
                                 <p class="text-muted">No hay mensajes recientes</p>
-                                <a href="{{ route('admin.whatsapp.send-messages') }}" class="btn btn-primary">
-                                    <i class="ri-send-plane-line me-2"></i>
-                                    Enviar primer mensaje
-                                </a>
+                               
                             </div>
                         @endif
                     </div>

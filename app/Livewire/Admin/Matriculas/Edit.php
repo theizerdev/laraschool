@@ -34,7 +34,6 @@ class Edit extends Component
     // Búsqueda de estudiantes
     public $searchStudent = '';
     public $showStudentDropdown = false;
-    public $selectedStudent = null;
 
     // Tabla de amortización
     public $paymentSchedule = [];
@@ -52,25 +51,25 @@ class Edit extends Component
         'numero_cuotas' => 'required|integer|min:0'
     ];
 
-  public function mount(Matricula $matricula)
+  public function mount($matricula)
     {
-        $this->matricula = $matricula->load(['student', 'programa', 'periodo']);
-        $this->student_id = $matricula->student_id;
-        $this->programa_id = $matricula->programa_id;
-        $this->periodo_id = $matricula->periodo_id;
-        $this->fecha_matricula = $matricula->fecha_matricula ? $matricula->fecha_matricula->format('Y-m-d') : now()->format('Y-m-d');
-        $this->estado = $matricula->estado ?? 'activo';
-        $this->costo = $matricula->costo ?? 0;
-        $this->cuota_inicial = $matricula->cuota_inicial ?? 0;
-        $this->numero_cuotas = $matricula->numero_cuotas ?? 0;
 
-        // Configurar estudiante seleccionado
-        $this->selectedStudent = $matricula->student;
-        $this->searchStudent = $matricula->student ? $matricula->student->nombres . ' ' . $matricula->student->apellidos : '';
+        $this->matricula = Matricula::with(['estudiante', 'programa', 'periodo'])->findOrFail($matricula);
+
+        $this->student_id = $this->matricula->estudiante_id;
+        $this->programa_id = $this->matricula->programa_id;
+        $this->periodo_id = $this->matricula->periodo_id;
+        $this->fecha_matricula = $this->matricula->fecha_matricula ? $this->matricula->fecha_matricula->format('Y-m-d') : now()->format('Y-m-d');
+        $this->estado = $this->matricula->estado ?? 'activo';
+        $this->costo = $this->matricula->costo ?? 0;
+        $this->cuota_inicial = $this->matricula->cuota_inicial ?? 0;
+        $this->numero_cuotas = $this->matricula->numero_cuotas ?? 0;
+
+        $this->searchStudent = $this->matricula->estudiante ? $this->matricula->estudiante->nombres . ' ' . $this->matricula->estudiante->apellidos : '';
 
         // Asegurar que el student_id esté correctamente establecido
-        if (!$this->student_id && $matricula->student) {
-            $this->student_id = $matricula->student->id;
+        if (!$this->student_id && $this->matricula->estudiante) {
+            $this->student_id = $this->matricula->estudiante->id;
         }
 
         $this->loadData();
@@ -150,7 +149,6 @@ class Edit extends Component
     {
         $student = Student::with('nivelEducativo')->find($studentId);
         if ($student) {
-            $this->selectedStudent = $student;
             $this->student_id = $student->id;
             $this->searchStudent = $student->nombres . ' ' . $student->apellidos;
             $this->showStudentDropdown = false;
@@ -168,7 +166,6 @@ class Edit extends Component
 
     public function clearStudentSelection()
     {
-        $this->selectedStudent = null;
         $this->student_id = null;
         $this->searchStudent = '';
         $this->showStudentDropdown = false;
@@ -330,7 +327,7 @@ class Edit extends Component
         }
     }
 
-    public function store()
+    public function update()
     {
         // Verificar permiso para crear matrículas
         if (!auth()->user()->can('create matriculas')) {
@@ -362,7 +359,7 @@ class Edit extends Component
 
             // Enviar notificación WhatsApp de matrícula
             $whatsappResult = $this->enviarNotificacionMatricula($matricula);
-            dd($whatsappResult);
+           
             $mensaje = 'Matrícula creada correctamente.';
             if ($whatsappResult['sent']) {
                 $mensaje .= ' Notificación enviada por WhatsApp a ' . $whatsappResult['destinatario'] . '.';
@@ -373,7 +370,6 @@ class Edit extends Component
             session()->flash('message', $mensaje);
             return redirect()->route('admin.matriculas.index');
         } catch (\Exception $e) {
-            dd($e);
             session()->flash('error', 'Error al crear la matrícula: ' . $e->getMessage());
             \Log::error('Error creating matricula: ' . $e->getMessage());
         }
@@ -383,7 +379,7 @@ class Edit extends Component
     {
         try {
             $matricula = Matricula::find($this->matricula_id);
-            dd($matricula);
+         
             foreach ($this->paymentSchedule as $schedule) {
                 
                 PaymentSchedule::where('matricula_id', $matricula->id)
@@ -425,7 +421,7 @@ class Edit extends Component
                     $nombreDestino = $estudiante->nombres . ' ' . $estudiante->apellidos;
                 }
 
-                //dd($telefono);
+              
 
             if (!$telefono) return $result;
 
@@ -509,6 +505,12 @@ class Edit extends Component
 
     public function render()
     {
-        return view('livewire.admin.matriculas.create')->layout($this->getLayout());
+        $selectedStudent = $this->student_id
+            ? Student::withoutGlobalScopes()->with('nivelEducativo')->find($this->student_id)
+            : null;
+
+        return view('livewire.admin.matriculas.edit', [
+            'selectedStudent' => $selectedStudent,
+        ])->layout($this->getLayout());
     }
 }

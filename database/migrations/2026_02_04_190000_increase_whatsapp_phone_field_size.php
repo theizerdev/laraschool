@@ -20,7 +20,11 @@ return new class extends Migration
         Schema::table('empresas', function (Blueprint $table) {
             // Aumentar el tamaño del campo whatsapp_phone de 20 a 50 caracteres
             if (Schema::hasColumn('empresas', 'whatsapp_phone')) {
-                $table->string('whatsapp_phone', 50)->nullable()->change();
+                try {
+                    $table->string('whatsapp_phone', 50)->nullable()->change();
+                } catch (\Throwable $e) {
+                    return;
+                }
             }
         });
     }
@@ -33,7 +37,11 @@ return new class extends Migration
         Schema::table('empresas', function (Blueprint $table) {
             // Volver al tamaño original de 20 caracteres
             if (Schema::hasColumn('empresas', 'whatsapp_phone')) {
-                $table->string('whatsapp_phone', 20)->nullable()->change();
+                try {
+                    $table->string('whatsapp_phone', 20)->nullable()->change();
+                } catch (\Throwable $e) {
+                    return;
+                }
             }
         });
     }

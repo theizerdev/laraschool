@@ -34,6 +34,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('notifications:send-automatic')->dailyAt('08:00');
+        $schedule->command('reports:send-account-reminders')->dailyAt('08:10');
         
         // Obtener tasas de cambio del BCV dos veces al día
         $schedule->command('exchange:fetch')
