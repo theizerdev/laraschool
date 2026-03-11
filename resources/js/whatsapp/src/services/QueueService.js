@@ -11,6 +11,12 @@ class QueueService {
     this.queueKey = 'whatsapp:message_queue';
     this.processingKey = 'whatsapp:processing';
     this.isProcessing = false;
+    this.whatsappService = null;
+    this.memoryQueue = [];
+  }
+
+  setWhatsAppService(service) {
+    this.whatsappService = service;
   }
 
   async addMessage(messageData) {
@@ -30,8 +36,10 @@ class QueueService {
           this.processQueue();
         }
       } else {
-        logger.warn('Redis not available, processing message directly');
-        await this.processMessage(message);
+        // Fallback a memoria
+        this.memoryQueue.push(message);
+        logger.warn('Redis not available, processing message from memory queue');
+        await this.processMessage(this.memoryQueue.shift());
       }
       
       return message.id;
@@ -65,8 +73,13 @@ class QueueService {
 
   async processMessage(message) {
     try {
-      const WhatsAppService = require('./WhatsAppService');
-      await WhatsAppService.sendMessage(message.sessionId || 'default', message);
+      if (!this.whatsappService) {
+        throw new Error('WhatsAppService instance not set in QueueService');
+      }
+      await this.whatsappService.sendMessage(message.to, message.content, {
+        type: message.type || 'text',
+        companyId: message.companyId
+      });
       logger.info(`Message processed: ${message.id}`);
     } catch (error) {
       logger.error(`Failed to process message ${message.id}:`, error);
@@ -82,8 +95,8 @@ class QueueService {
   }
 
   async getQueueSize() {
-    if (!redis) return 0;
-    return await redis.lLen(this.queueKey);
+    if (redis) return await redis.lLen(this.queueKey);
+    return this.memoryQueue.length;
   }
 }
 

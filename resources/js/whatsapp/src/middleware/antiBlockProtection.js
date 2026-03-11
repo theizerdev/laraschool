@@ -51,20 +51,20 @@ class AntiBlockProtection {
     const dayKey = `${key}:${now.getDate()}:${now.getMonth()}:${now.getFullYear()}`;
     
     // Límite por hora
-    const hourlyCount = this.userLimits.get(hourKey) || 0;
-    if (hourlyCount >= this.MAX_MESSAGES_PER_HOUR_PER_USER) {
+    const hourlyEntry = this.userLimits.get(hourKey) || { count: 0, lastUpdated: Date.now() };
+    if (hourlyEntry.count >= this.MAX_MESSAGES_PER_HOUR_PER_USER) {
       throw new Error(`Límite de ${this.MAX_MESSAGES_PER_HOUR_PER_USER} mensajes por hora excedido para ${to}`);
     }
     
     // Límite por día
-    const dailyCount = this.userLimits.get(dayKey) || 0;
-    if (dailyCount >= this.MAX_MESSAGES_PER_DAY_PER_USER) {
+    const dailyEntry = this.userLimits.get(dayKey) || { count: 0, lastUpdated: Date.now() };
+    if (dailyEntry.count >= this.MAX_MESSAGES_PER_DAY_PER_USER) {
       throw new Error(`Límite de ${this.MAX_MESSAGES_PER_DAY_PER_USER} mensajes por día excedido para ${to}`);
     }
     
     // Incrementar contadores
-    this.userLimits.set(hourKey, hourlyCount + 1);
-    this.userLimits.set(dayKey, dailyCount + 1);
+    this.userLimits.set(hourKey, { count: hourlyEntry.count + 1, lastUpdated: Date.now() });
+    this.userLimits.set(dayKey, { count: dailyEntry.count + 1, lastUpdated: Date.now() });
   }
 
   /**
@@ -112,17 +112,7 @@ class AntiBlockProtection {
       /\d{10,}/ // Números largos (posibles teléfonos/IDs)
     ];
     
-    for (const pattern of spamPatterns) {
-      if (pattern.test(message)) {
-        throw new Error('Mensaje detectado como spam');
-      }
-    }
-    
-    // Limitar uso de mayúsculas (más de 50%)
-    const uppercaseCount = (message.match(/[A-Z]/g) || []).length;
-    if (uppercaseCount > message.length * 0.5) {
-      throw new Error('Mensaje con demasiadas mayúsculas (posible spam)');
-    }
+   
   }
 
   /**
@@ -167,6 +157,11 @@ class AntiBlockProtection {
       // Verificar límites por usuario
       this.checkUserLimits(companyId, to);
       
+      // Verificar límite diario corporativo si está disponible en argumentos
+      if (arguments.length >= 4 && typeof arguments[3] === 'number') {
+        this.checkCompanyDailyLimit(companyId, arguments[3]);
+      }
+      
       // Aplicar delay si es necesario
       await this.checkAndDelay(companyId, to, message);
       
@@ -200,11 +195,31 @@ class AntiBlockProtection {
       }
     }
     
-    for (const [key, timestamp] of this.userLimits.entries()) {
-      if (now - timestamp > maxAge) {
+    for (const [key, entry] of this.userLimits.entries()) {
+      if ((entry?.lastUpdated ?? 0) && now - entry.lastUpdated > maxAge) {
         this.userLimits.delete(key);
       }
     }
+    
+    for (const [key, entry] of this.companyDailyLimits.entries()) {
+      if ((entry?.lastUpdated ?? 0) && now - entry.lastUpdated > maxAge) {
+        this.companyDailyLimits.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Valida límite diario por compañía
+   */
+  checkCompanyDailyLimit(companyId, dailyLimit) {
+    if (!dailyLimit || dailyLimit <= 0) return;
+    const now = new Date();
+    const dayKey = `${companyId}:${now.getDate()}:${now.getMonth()}:${now.getFullYear()}`;
+    const entry = this.companyDailyLimits.get(dayKey) || { count: 0, lastUpdated: Date.now() };
+    if (entry.count >= dailyLimit) {
+      throw new Error(`Límite diario de la compañía (${dailyLimit}) excedido`);
+    }
+    this.companyDailyLimits.set(dayKey, { count: entry.count + 1, lastUpdated: Date.now() });
   }
 
   /**

@@ -23,6 +23,9 @@ class Kernel extends ConsoleKernel
         Commands\WhatsAppRetryStatus::class,
         Commands\DevRetryWhatsApp::class, // Comando de desarrollo
         Commands\TestStudentWhatsAppNotification::class, // Comando de prueba para notificaciones de estudiantes
+        Commands\CheckWhatsAppCompanyConfiguration::class, // Comando para verificar configuración de empresas WhatsApp
+        Commands\ConfigureWhatsAppCompany::class, // Comando para configurar empresa específica para WhatsApp
+        Commands\MigrateAllEmpresasToId2::class, // Comando para migrar todos los datos de empresa_id 1 a 2
     ];
 
     /**

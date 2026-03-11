@@ -11,6 +11,8 @@ API completa de WhatsApp usando Baileys para el U.E JOSE MARIA VARGAS con soport
 - 📊 **Monitoreo Completo**: Logs detallados y health checks
 - ⚡ **Integración Laravel**: Comandos Artisan para sincronización
 - 🌐 **API RESTful**: Endpoints claros y bien documentados
+- 📈 **Métricas y Monitoreo**: Endpoint `/metrics` compatible con Prometheus y latencia por petición
+- 🧪 **Pruebas**: Suite de tests unitarios e integración con cobertura objetivo ≥80%
 
 ## 🚀 Inicio Rápido
 
@@ -38,6 +40,8 @@ Ejecuta las migraciones:
 npm start
 # o para desarrollo:
 npm run dev
+# pruebas
+npm test
 ```
 
 ## 📱 Uso de la API
@@ -70,6 +74,11 @@ POST /api/whatsapp/send
   "to": "4121234567",
   "message": "Hola desde WhatsApp API"
 }
+# Validaciones:
+# - to: 10-15 dígitos (puede incluir +), se normaliza a JID internamente
+# - message: 2..4096 caracteres
+# - type: opcional ['text','image','document','audio','video']
+# - Country code: opcional vía header X-Country-Code, fallback a DEFAULT_COUNTRY_CODE/.env o 58
 ```
 
 #### Ver Mensajes
@@ -163,6 +172,14 @@ La API utiliza la base de datos `larawhatsapp` con la tabla `companies` que cont
 ```bash
 GET /health
 ```
+
+### Métricas (Prometheus)
+```bash
+GET /metrics
+```
+- Incluye `http_requests_total` por método/ruta/status
+- `http_request_duration_seconds` con buckets de latencia
+- `whatsapp_messages_sent_total` y `whatsapp_messages_failed_total`
 
 ### Logs
 Los logs se guardan en `logs/`:

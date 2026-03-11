@@ -126,7 +126,9 @@ const validateApiKey = async (req, res, next) => {
             company_id: company.id,
             name: company.name,
             api_key: company.apiKey,
-            is_active: company.isActive
+            is_active: company.isActive,
+            rateLimitPerMinute: company.rateLimitPerMinute,
+            dailyMessageLimit: company.dailyMessageLimit
         };
         
         next();

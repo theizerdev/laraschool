@@ -29,7 +29,7 @@ const Message = sequelize.define('Message', {
     defaultValue: 'text'
   },
   status: {
-    type: DataTypes.ENUM('pending', 'sent', 'delivered', 'read', 'failed'),
+    type: DataTypes.ENUM('pending', 'sent', 'delivered', 'read', 'failed', 'received'),
     defaultValue: 'pending'
   },
   mediaUrl: {
