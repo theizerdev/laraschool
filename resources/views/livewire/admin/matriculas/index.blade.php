@@ -15,67 +15,118 @@
 
     <!-- Stats Cards -->
     <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card border-start border-primary border-4 shadow-sm h-100">
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
+            <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Total Matrículas</h6>
-                            <h2 class="mb-0">{{ $totalMatriculas }}</h2>
+                            <h4 class="mb-1">{{ $totalMatriculas }}</h4>
+                            <p class="mb-0">Total Matrículas</p>
                         </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded">
-                            <i class="ri ri-graduation-cap-line text-primary" style="font-size: 1.5rem;"></i>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-primary">
+                                <i class="ri ri-graduation-cap-line ri-24px"></i>
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-start border-success border-4 shadow-sm h-100">
+
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
+            <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Activas</h6>
-                            <h2 class="mb-0">{{ $matriculasActivas }}</h2>
+                            <h4 class="mb-1">{{ $matriculasActivas }}</h4>
+                            <p class="mb-0">Matrículas Activas</p>
                         </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded">
-                            <i class="ri ri-check-circle-line text-success" style="font-size: 1.5rem;"></i>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-success">
+                                <i class="ri ri-check-circle-line ri-24px"></i>
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-start border-warning border-4 shadow-sm h-100">
+
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
+            <div class="card">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-muted mb-2">Inactivas</h6>
-                            <h2 class="mb-0">{{ $matriculasInactivas }}</h2>
+                            <h4 class="mb-1">{{ $matriculasInactivas }}</h4>
+                            <p class="mb-0">Matrículas Inactivas</p>
                         </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded">
-                            <i class="ri ri-pause-circle-line text-warning" style="font-size: 1.5rem;"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-start border-info border-4 shadow-sm h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-2">Ingresos Totales</h6>
-                            <h2 class="mb-0">@money($ingresosTotales)</h2>
-                        </div>
-                        <div class="bg-info bg-opacity-10 p-3 rounded">
-                            <i class="ri ri-money-dollar-circle-line text-info" style="font-size: 1.5rem;"></i>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-warning">
+                                <i class="ri ri-pause-circle-line ri-24px"></i>
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Financial Stats Cards 
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1">@money($ingresosTotales)</h4>
+                            <p class="mb-0">Ingresos Totales</p>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-info">
+                                <i class="ri ri-money-dollar-circle-line ri-24px"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1">{{ $matriculasSolventes }}</h4>
+                            <p class="mb-0">Matrículas Solventes</p>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-success">
+                                <i class="ri ri-wallet-3-line ri-24px"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h4 class="mb-1">{{ $matriculasPendientes }}</h4>
+                            <p class="mb-0">Matrículas Pendientes</p>
+                        </div>
+                        <div class="avatar">
+                            <span class="avatar-initial rounded bg-label-danger">
+                                <i class="ri ri-alert-line ri-24px"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    -->
 
     <div class="row">
         <div class="col-12">
@@ -139,7 +190,7 @@
                     <tr>
                         <th wire:click="sortBy('students.nombres')" style="cursor: pointer;">
                             Estudiante
-                            @if($sortBy === 'students.nombres')
+                            @if($sortBy === 'students.nombres') 
                                 <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
                             @endif
                         </th>
@@ -162,6 +213,7 @@
                             @endif
                         </th>
                         <th>Costo Total</th>
+                        <th>Solvencia</th>
                         <th wire:click="sortBy('estado')" style="cursor: pointer;">
                             Estado
                             @if($sortBy === 'estado')
@@ -173,6 +225,7 @@
                 </thead>
                 <tbody>
                     @forelse($matriculas as $matricula)
+                   
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
@@ -194,6 +247,17 @@
                             <td>{{ $matricula->periodo->name ?? '' }}</td>
                             <td>{{ format_date($matricula->fecha_matricula) }}</td>
                             <td>@money($matricula->costo)</td>
+                            <td>
+                                @if($matricula->solvente)
+                                    <span class="badge bg-label-success" title="Matrícula solvente">
+                                        <i class="ri ri-check-line"></i> SOLVENTE
+                                    </span>
+                                @else
+                                    <span class="badge bg-label-danger" title="Matrícula con deuda pendiente">
+                                        <i class="ri ri-alert-line"></i> PENDIENTE
+                                    </span>
+                                @endif
+                            </td>
                             <td>
                                 <div class="form-check form-switch">
                                     <input class="form-check-input" type="checkbox"
@@ -234,7 +298,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center">No se encontraron matrículas</td>
+                            <td colspan="8" class="text-center">No se encontraron matrículas</td>
                         </tr>
                     @endforelse
                 </tbody>

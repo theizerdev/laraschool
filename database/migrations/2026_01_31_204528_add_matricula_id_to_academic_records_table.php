@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('academic_records', 'matricula_id')) {
+            return;
+        }
+
         Schema::table('academic_records', function (Blueprint $table) {
             $table->unsignedBigInteger('matricula_id')->after('student_id')->nullable();
             $table->index(['matricula_id', 'student_id', 'school_period_id'], 'idx_academic_record_matricula');

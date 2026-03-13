@@ -173,6 +173,8 @@ Route::get('/series/{serie}/editar', \App\Livewire\Admin\Series\Edit::class)->na
 
 // Matrículas
 Route::get('/matriculas', \App\Livewire\Admin\Matriculas\Index::class)->name('matriculas.index');
+Route::get('/matriculas/pendientes', \App\Livewire\Admin\Matriculas\Pendientes::class)->name('matriculas.pendientes');
+Route::get('/matriculas/solventes', \App\Livewire\Admin\Matriculas\Solventes::class)->name('matriculas.solventes');
 Route::get('/matriculas/crear', \App\Livewire\Admin\Matriculas\Create::class)->name('matriculas.create');
 Route::get('/matriculas/cambiar-cuotas', \App\Livewire\Admin\Matriculas\CambiarCuotas::class)->name('matriculas.cambiar-cuotas');
 Route::get('/matriculas/{matricula}/editar', \App\Livewire\Admin\Matriculas\Edit::class)->name('matriculas.edit');

@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('empresas', 'whatsapp_api_key')) {
+            return;
+        }
+
         Schema::table('empresas', function (Blueprint $table) {
             $table->string('whatsapp_api_key')->nullable()->after('api_key');
             $table->integer('whatsapp_rate_limit')->default(100)->after('whatsapp_api_key');

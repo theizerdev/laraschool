@@ -323,7 +323,8 @@
                                     </div>
                                     <div class="flex-grow-1">
                                         <div class="fw-medium">{{ $matricula->student->nombres }} {{ $matricula->student->apellidos }}</div>
-                                        <small class="text-muted">{{ $matricula->student->documento_identidad }} • {{ $matricula->programa->nombre }}</small>
+                                        <small class="text-muted">{{ $matricula->student->documento_identidad }} • {{ $matricula->programa->nombre }}</small><br>
+                                        <small class="text-muted">{{ $matricula->periodo->name  }} • {{ $matricula->periodo->start_date->format('d/m/Y') }} - {{ $matricula->periodo->end_date->format('d/m/Y') }}</small>
                                     </div>
                                 </div>
                             </div>
@@ -394,6 +395,24 @@
                                             <div>
                                                 <small class="text-muted d-block">Código Estudiante</small>
                                                 <span class="fw-medium">{{ $matricula->student->codigo ?? 'N/A' }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center">
+                                            <i class="ri ri-calendar-line text-success me-2"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Periodo</small>
+                                                <span class="fw-medium">{{ $matricula->periodo->name }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center">
+                                            <i class="ri ri-calendar-line text-success me-2"></i>
+                                            <div>
+                                                <small class="text-muted d-block">Inicio - Fin</small>
+                                                <span class="fw-medium">{{ $matricula->periodo->start_date->format('d/m/Y') .' - '. $matricula->periodo->end_date->format('d/m/Y') }}</span>
                                             </div>
                                         </div>
                                     </div>

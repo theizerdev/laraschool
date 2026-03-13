@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasTable('recovery_periods')) {
+            return;
+        }
+
         // Tabla de períodos de recuperación
         Schema::create('recovery_periods', function (Blueprint $table) {
             $table->id();

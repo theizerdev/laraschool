@@ -8,6 +8,19 @@ return new class extends Migration
 {
     public function up()
     {
+        if (Schema::hasColumn('teachers', 'name')) {
+            return;
+        }
+
+        if (\DB::getDriverName() !== 'mysql') {
+            Schema::table('teachers', function (Blueprint $table) {
+                $table->string('name', 255)->nullable()->after('user_id');
+                $table->string('email', 255)->nullable()->after('name');
+            });
+
+            return;
+        }
+
         Schema::table('teachers', function (Blueprint $table) {
             $table->string('name', 255)->nullable()->after('user_id');
             $table->string('email', 255)->nullable()->after('name');
@@ -18,10 +31,10 @@ return new class extends Migration
         });
         
         // Actualizar los datos existentes con los valores de la tabla users
-        DB::table('teachers')->join('users', 'teachers.user_id', '=', 'users.id')
+        \DB::table('teachers')->join('users', 'teachers.user_id', '=', 'users.id')
             ->update([
-                'teachers.name' => DB::raw('users.name'),
-                'teachers.email' => DB::raw('users.email')
+                'teachers.name' => \DB::raw('users.name'),
+                'teachers.email' => \DB::raw('users.email')
             ]);
         
         // Hacer los campos obligatorios después de la migración de datos

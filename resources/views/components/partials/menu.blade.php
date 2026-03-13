@@ -112,16 +112,7 @@
       </ul>
     </li>
     @endcan
-
-    @canany(['access matriculas', 'access programas', 'access subjects', 'access study_plans'])
-  <!-- Matrículas y Materias -->
-  <li class="menu-item {{ request()->routeIs('admin.matriculas.*') || request()->routeIs('admin.programas.*') || request()->routeIs('admin.subjects.*') || request()->routeIs('admin.study-plans.*') ? 'active open' : '' }}">
-    <a href="javascript:void(0);" class="menu-link menu-toggle">
-      <i class="menu-icon tf-icons ri ri-graduation-cap-line"></i>
-      <div>Matrículas y Materias</div>
-    </a>
-    <ul class="menu-sub">
-      @can('access programas')
+    @can('access programas')
       <li class="menu-item {{ request()->routeIs('admin.programas.*') ? 'active' : '' }}">
         <a href="{{ route('admin.programas.index') }}" class="menu-link">
           <div>Programas</div>
@@ -135,7 +126,7 @@
         </a>
       </li>
       @endcan
-      @can('access study_plans')
+       @can('access study_plans')
       <li class="menu-item {{ request()->routeIs('admin.study-plans.*') ? 'active' : '' }}">
         <a href="{{ route('admin.study-plans.index') }}" class="menu-link">
           <div>Planes de Estudio</div>
@@ -149,12 +140,45 @@
         </a>
       </li>
       @endcan
+       @can('cambiar cuotas matriculas')
+      <li class="menu-item {{ request()->routeIs('admin.matriculas.cambiar-cuotas') ? 'active' : '' }}">
+        <a href="{{ route('admin.matriculas.cambiar-cuotas') }}" class="menu-link">
+          <div>Cambiar Cuotas</div>
+        </a>
+      </li>
+      @endcan
+    @canany(['access matriculas', 'access programas', 'access subjects', 'access study_plans'])
+  <!-- Matrículas y Materias -->
+  <li class="menu-item {{ request()->routeIs('admin.matriculas.*') || request()->routeIs('admin.programas.*') || request()->routeIs('admin.subjects.*') || request()->routeIs('admin.study-plans.*') ? 'active open' : '' }}">
+    <a href="javascript:void(0);" class="menu-link menu-toggle">
+      <i class="menu-icon tf-icons ri ri-graduation-cap-line"></i>
+      <div>Matrículas y Materias</div>
+    </a>
+    <ul class="menu-sub">
+     
+      
+     
       @can('access matriculas')
       <li class="menu-item {{ request()->routeIs('admin.matriculas.index') ? 'active' : '' }}">
         <a href="{{ route('admin.matriculas.index') }}" class="menu-link">
-          <div>Listado</div>
+          <div>Listado general</div>
         </a>
       </li>
+       @endcan
+      @can('access matriculas')
+      <li class="menu-item {{ request()->routeIs('admin.matriculas.pendientes') ? 'active' : '' }}">
+        <a href="{{ route('admin.matriculas.pendientes') }}" class="menu-link">
+          <div>Pendientes</div>
+        </a>
+      </li>
+       @endcan
+      @can('access matriculas')
+      <li class="menu-item {{ request()->routeIs('admin.matriculas.solventes') ? 'active' : '' }}">
+        <a href="{{ route('admin.matriculas.solventes') }}" class="menu-link">
+          <div>Solventes</div>
+        </a>
+      </li>
+       @endcan
       @can('create matriculas')
       <li class="menu-item {{ request()->routeIs('admin.matriculas.create') ? 'active' : '' }}">
         <a href="{{ route('admin.matriculas.create') }}" class="menu-link">
@@ -162,14 +186,8 @@
         </a>
       </li>
       @endcan
-      @can('cambiar cuotas matriculas')
-      <li class="menu-item {{ request()->routeIs('admin.matriculas.cambiar-cuotas') ? 'active' : '' }}">
-        <a href="{{ route('admin.matriculas.cambiar-cuotas') }}" class="menu-link">
-          <div>Cambiar Cuotas</div>
-        </a>
-      </li>
-      @endcan
-      @endcan
+     
+     
     </ul>
   </li>
   @endcan

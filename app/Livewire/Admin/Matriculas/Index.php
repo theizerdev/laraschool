@@ -93,9 +93,9 @@ class Index extends Component
 
     protected function getExportQuery()
     {
-        return Matricula::with(['student', 'programa', 'periodo'])
+        return Matricula::with(['estudiante', 'programa', 'periodo'])
             ->when($this->search, function ($query) {
-                $query->whereHas('student', function ($subQuery) {
+                $query->whereHas('estudiante', function ($subQuery) {
                     $subQuery->where('nombres', 'like', '%' . $this->search . '%')
                         ->orWhere('apellidos', 'like', '%' . $this->search . '%')
                         ->orWhere('documento_identidad', 'like', '%' . $this->search . '%');
@@ -103,6 +103,11 @@ class Index extends Component
             })
             ->when($this->status !== '', function ($query) {
                 $query->where('estado', $this->status);
+            })
+            ->whereIn('id', function($subquery) {
+                $subquery->selectRaw('MAX(id)')
+                    ->from('matriculas')
+                    ->groupBy('estudiante_id');
             })
             ->orderBy($this->sortBy, $this->sortDirection);
     }
@@ -119,7 +124,8 @@ class Index extends Component
             'Costo',
             'Cuota Inicial',
             'Número Cuotas',
-            'Estado'
+            'Estado',
+            'Solvencia'
         ];
     }
 
@@ -127,23 +133,25 @@ class Index extends Component
     {
         return [
             $matricula->id,
-            $matricula->student->nombres . ' ' . $matricula->student->apellidos,
-            $matricula->student->documento_identidad,
+            $matricula->estudiante->nombres. ' ' . $matricula->estudiante->apellidos,
+            $matricula->estudiante->documento_identidad,
             $matricula->programa->nombre ?? 'N/A',
             $matricula->periodo->name ?? 'N/A',
             format_date($matricula->fecha_matricula),
             $matricula->costo,
             $matricula->cuota_inicial,
             $matricula->numero_cuotas,
-            ucfirst($matricula->estado)
+            ucfirst($matricula->estado),
+            $matricula->solvente ? 'SOLVENTE' : 'PENDIENTE'
         ];
     }
 
     public function render()
     {
-        $matriculas = Matricula::with(['student', 'programa', 'periodo'])
+        // Obtener solo la matrícula más reciente de cada estudiante
+        $matriculas = Matricula::with(['estudiante', 'programa', 'periodo', 'paymentSchedules'])
             ->when($this->search, function ($query) {
-                $query->whereHas('student', function ($subQuery) {
+                $query->whereHas('estudiante', function ($subQuery) {
                     $subQuery->where('nombres', 'like', '%' . $this->search . '%')
                         ->orWhere('apellidos', 'like', '%' . $this->search . '%')
                         ->orWhere('documento_identidad', 'like', '%' . $this->search . '%');
@@ -152,15 +160,35 @@ class Index extends Component
             ->when($this->status !== '', function ($query) {
                 $query->where('estado', $this->status);
             })
+            ->whereIn('id', function($subquery) {
+                $subquery->selectRaw('MAX(id)')
+                    ->from('matriculas')
+                    ->groupBy('estudiante_id');
+            })
             ->orderBy($this->sortBy, $this->sortDirection)
             ->paginate($this->perPage);
 
-        // Estadísticas
-        $totalMatriculas = Matricula::where('estado', 'activo')->count();
-        $matriculasActivas = Matricula::where('estado', 'activo')->count();
-        $matriculasInactivas = Matricula::where('estado', 'inactivo')->count();
-        $matriculasGraduadas = Matricula::where('estado', 'graduado')->count();
-        $ingresosTotales = Matricula::where('estado', 'activo')->sum('costo');
+        // Estadísticas - contar solo matrículas únicas por estudiante
+        $matriculasUnicas = Matricula::whereIn('id', function($subquery) {
+            $subquery->selectRaw('MAX(id)')
+                ->from('matriculas')
+                ->groupBy('estudiante_id');
+        });
+        
+        $totalMatriculas = (clone $matriculasUnicas)->count();
+        $matriculasActivas = (clone $matriculasUnicas)->where('estado', 'activo')->count();
+        $matriculasInactivas = (clone $matriculasUnicas)->where('estado', 'inactivo')->count();
+        $matriculasGraduadas = (clone $matriculasUnicas)->where('estado', 'graduado')->count();
+        $ingresosTotales = (clone $matriculasUnicas)->where('estado', 'activo')->sum('costo');
+        
+        // Calcular matrículas solventes y pendientes (solo activas) - únicas por estudiante
+        $matriculasSolventes = (clone $matriculasUnicas)->where('estado', 'activo')
+            ->where('solvente', true)
+            ->count();
+            
+        $matriculasPendientes = (clone $matriculasUnicas)->where('estado', 'activo')
+            ->where('solvente', false)
+            ->count();
 
         return view('livewire.admin.matriculas.index', compact(
             'matriculas',
@@ -168,7 +196,9 @@ class Index extends Component
             'matriculasActivas',
             'matriculasInactivas',
             'matriculasGraduadas',
-            'ingresosTotales'
+            'ingresosTotales',
+            'matriculasSolventes',
+            'matriculasPendientes'
         ))->layout($this->getLayout());
     }
 }

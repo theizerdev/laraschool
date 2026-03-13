@@ -192,11 +192,32 @@ class Student extends Model
         }
         
         // Si es menor de edad o no tiene teléfono propio, usar los del representante
-        if ($this->esMenorDeEdad && !empty($this->representante_telefonos) && is_array($this->representante_telefonos)) {
+        if($this->esMenorDeEdad && !empty($this->representante_telefonos) && is_array($this->representante_telefonos)) {
             $telefonos = array_merge($telefonos, $this->representante_telefonos);
         }
         
         return array_filter($telefonos); // Eliminar valores vacíos
+    }
+
+    /**
+     * Obtener datos del representante como un objeto estructurado
+     */
+    public function getRepresentanteAttribute(): ?array
+    {
+        // Si no hay datos del representante, retornar null
+        if(empty($this->representante_nombres) && empty($this->representante_apellidos)) {
+            return null;
+        }
+
+        return [
+            'nombres' => $this->representante_nombres ?? '',
+            'apellidos' => $this->representante_apellidos ?? '',
+            'nombre_completo' => trim(($this->representante_nombres ?? '') . ' ' . ($this->representante_apellidos ?? '')),
+            'documento_identidad' => $this->representante_documento_identidad ?? '',
+            'telefono' => is_array($this->representante_telefonos) ? ($this->representante_telefonos[0] ?? '') : ($this->representante_telefonos ?? ''),
+            'correo' => $this->representante_correo ?? '',
+            'direccion' => $this->representante_direccion ?? '',
+        ];
     }
 
     /**

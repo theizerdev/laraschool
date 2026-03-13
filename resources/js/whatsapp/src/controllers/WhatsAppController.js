@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 const antiBlockProtection = require('../middleware/antiBlockProtection');
+const Consent = require('../models/Consent');
 
 class WhatsAppController {
   async getStatus(req, res) {
@@ -71,6 +72,29 @@ class WhatsAppController {
     }
   }
 
+  async forceReconnect(req, res) {
+    try {
+      const whatsappService = req.app.locals.whatsappService;
+      
+      if (!whatsappService) {
+        return res.status(500).json({ 
+          success: false, 
+          error: 'WhatsApp service not initialized' 
+        });
+      }
+
+      await whatsappService.forceReconnect();
+      res.json({ 
+        success: true, 
+        company: req.company.name,
+        message: 'Force reconnection initiated'
+      });
+    } catch (error) {
+      logger.error('Error forcing reconnection:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
+
   async getQRCode(req, res) {
     try {
       // Acceder a la instancia global del servicio WhatsApp
@@ -112,6 +136,8 @@ class WhatsAppController {
     try {
       const { to, message, type = 'text', mediaUrl } = req.body;
       const whatsappService = req.app.locals.whatsappService;
+      const metrics = req.app.locals.metrics;
+      const countryCode = (req.headers['x-country-code'] || '').replace(/\D/g, '') || undefined;
       
       if (!whatsappService) {
         return res.status(500).json({ 
@@ -120,9 +146,34 @@ class WhatsAppController {
         });
       }
 
+      // Opt-in/Opt-out
+      const phoneDigits = (to || '').replace(/\D/g, '');
+      try {
+        const consent = await Consent.findOne({
+          where: { companyId: req.company.company_id, phone: phoneDigits }
+        });
+        if (consent && consent.optedIn === false) {
+          return res.status(403).json({
+            success: false,
+            error: 'Usuario con opt-out: no se permite enviar mensajes',
+            code: 'CONSENT_OPT_OUT',
+            company: req.company.name
+          });
+        }
+      } catch (err) {
+        logger.warn('Consent check failed', { error: err.message, companyId: req.company.company_id, phone: phoneDigits });
+      }
+
       // 🔒 PROTECCIÓN ANTI-BLOQUEO CRÍTICA
       try {
-        await antiBlockProtection.protectMessage(req.company.id, to, message);
+        // Formatear a JID antes de validar anti-block (espera *@s.whatsapp.net)
+        const jidForValidation = whatsappService.formatPhoneNumber(to, { countryCode });
+        await antiBlockProtection.protectMessage(
+          req.company.id, 
+          jidForValidation, 
+          message,
+          req.company.dailyMessageLimit
+        );
       } catch (protectionError) {
         logger.warn(`Message blocked by anti-block protection: ${protectionError.message}`, {
           companyId: req.company.id,
@@ -130,6 +181,7 @@ class WhatsAppController {
           to,
           reason: protectionError.message
         });
+        try { metrics?.messagesFailed?.inc({ company_id: req.company.company_id, company_name: req.company.name }); } catch (_) {}
         
         return res.status(429).json({ 
           success: false, 
@@ -142,9 +194,12 @@ class WhatsAppController {
       const result = await whatsappService.sendMessage(to, message, {
         type,
         mediaUrl,
-        companyId: req.company.company_id
+        companyId: req.company.company_id,
+        countryCode,
+        metrics
       });
 
+      try { metrics?.messagesSent?.inc({ company_id: req.company.company_id, company_name: req.company.name }); } catch (_) {}
       res.json({ 
         success: true, 
         messageId: result.messageId, 

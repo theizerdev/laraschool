@@ -20,10 +20,21 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Error de Sequelize
-  if (err.name === 'SequelizeError') {
+  if (err.name === 'SequelizeError' || err.name?.startsWith('Sequelize')) {
     return res.status(500).json({
       success: false,
-      error: 'Error de base de datos'
+      error: 'Error de base de datos',
+      details: err.message
+    });
+  }
+
+  // Violación de unicidad (e.g., messageId duplicado)
+  if (err.name === 'SequelizeUniqueConstraintError') {
+    return res.status(409).json({
+      success: false,
+      error: 'Conflicto: registro duplicado',
+      field: err.errors?.[0]?.path,
+      value: err.errors?.[0]?.value
     });
   }
 

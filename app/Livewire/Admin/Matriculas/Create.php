@@ -66,8 +66,7 @@ class Create extends Component
     public function updatedSearchStudent()
     {
         if (strlen($this->searchStudent) >= 2) {
-            $this->students = Student::whereDoesntHave('matriculas')
-                ->with('nivelEducativo')
+            $this->students = Student::with('nivelEducativo')
                 ->where(function($query) {
                     $query->where('nombres', 'like', '%' . $this->searchStudent . '%')
                           ->orWhere('apellidos', 'like', '%' . $this->searchStudent . '%')
@@ -77,6 +76,7 @@ class Create extends Component
                 ->orderBy('apellidos')
                 ->limit(10)
                 ->get();
+                
             $this->showStudentDropdown = true;
         } else {
             $this->students = [];

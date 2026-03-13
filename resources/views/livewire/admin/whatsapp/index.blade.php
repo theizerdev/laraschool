@@ -163,15 +163,7 @@
                     @endif
                 </button>
             </li>
-            <li class="nav-item" role="presentation">
-                <button type="button"
-                        class="nav-link {{ $activeTab === 'mensajes' ? 'active' : '' }}"
-                        wire:click="setActiveTab('mensajes')"
-                        @if($status !== 'connected') disabled title="Conecte WhatsApp primero" @endif>
-                    <i class="ri ri-message-3-line me-1 ri-20px"></i>
-                    <span class="d-none d-sm-inline">Enviar Mensaje</span>
-                </button>
-            </li>
+            
         </ul>
 
         <!-- Tab Content -->

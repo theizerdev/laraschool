@@ -11,6 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (Schema::hasColumn('pais', 'latitud')) {
+            return;
+        }
+
         Schema::table('pais', function (Blueprint $table) {
             $table->decimal('latitud', 11, 8)->nullable()->after('continente');
             $table->decimal('longitud', 11, 8)->nullable()->after('latitud');

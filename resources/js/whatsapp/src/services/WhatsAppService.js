@@ -70,10 +70,28 @@ class WhatsAppService {
     this.connectionState = 'connecting';
     
     try {
-      logger.whatsapp('Iniciando conexión a WhatsApp...');
+      logger.whatsapp('Inicializando autenticación...');
       
-      // Configurar autenticación multi-archivo
-      const { state, saveCreds } = await useMultiFileAuthState(this.sessionPath);
+      // Manejo de sesiones corruptas o error "Bad MAC"
+      let state, saveCreds;
+      try {
+        const authResult = await useMultiFileAuthState(this.sessionPath);
+        state = authResult.state;
+        saveCreds = authResult.saveCreds;
+      } catch (authError) {
+        logger.error('Error al cargar autenticación, limpiando sesión:', authError.message);
+        if (authError.message?.includes('Bad MAC') || authError.message?.includes('corrupt')) {
+          await this.clearCorruptedSession();
+          // Reintentar después de limpiar
+          const authResult = await useMultiFileAuthState(this.sessionPath);
+          state = authResult.state;
+          saveCreds = authResult.saveCreds;
+        } else {
+          throw authError;
+        }
+      }
+      
+      logger.whatsapp('Autenticación cargada exitosamente');
       
       // Crear socket
       this.sock = makeWASocket({
@@ -123,6 +141,27 @@ class WhatsAppService {
 
       // Configurar event handlers
       this.setupEventHandlers(saveCreds);
+      
+      // Si hay credenciales existentes pero no nos conectamos inmediatamente, 
+      // esperar un momento para ver si hay error de autenticación
+      if (state.creds && state.creds.registered) {
+        logger.whatsapp('Credenciales existentes detectadas, monitoreando conexión...');
+        
+        // Dar tiempo para que ocurra el error 401 si las credenciales están corruptas
+        setTimeout(async () => {
+          if (!this.isConnected && this.connectionState === 'connecting') {
+            logger.whatsapp('Conexión pendiente con credenciales existentes, verificando estado...');
+            
+            // Si después de 5 segundos no estamos conectados, forzar reconexión
+            setTimeout(async () => {
+              if (!this.isConnected && this.connectionState === 'connecting') {
+                logger.whatsapp('Timeout en conexión con credenciales existentes, forzando reconexión...');
+                await this.forceReconnect();
+              }
+            }, 5000);
+          }
+        }, 3000);
+      }
       
     } catch (error) {
       logger.error('Error conectando a WhatsApp:', error);
@@ -222,10 +261,39 @@ class WhatsAppService {
       timestamp: new Date().toISOString(),
       user: this.sock.user
     });
-    
+  }
 
-    
-
+  async forceDisconnectAndCleanup() {
+    try {
+      logger.whatsapp('Forzando desconexión y limpieza por error de autenticación...');
+      
+      // Cerrar socket si existe
+      if (this.sock) {
+        await this.sock.logout();
+        this.sock = null;
+      }
+      
+      // Limpiar estado
+      this.isConnected = false;
+      this.isConnecting = false;
+      this.qrCode = null;
+      this.connectionState = 'disconnected';
+      
+      // Limpiar sesión corrupta
+      await this.clearCorruptedSession();
+      
+      // Emitir estado
+      this.io.emit('connection-status', {
+        status: 'disconnected',
+        reason: 'authentication_error',
+        timestamp: new Date().toISOString()
+      });
+      
+      logger.whatsapp('Desconexión y limpieza completadas');
+      
+    } catch (error) {
+      logger.error('Error al forzar desconexión y limpieza:', error);
+    }
   }
 
   async handleDisconnection(lastDisconnect) {
@@ -241,6 +309,13 @@ class WhatsAppService {
       shouldReconnect,
       reconnectAttempts: this.reconnectAttempts 
     });
+    
+    // Si es error 401 (unauthorized), limpiar sesión y forzar nueva autenticación
+    if (reason === 401) {
+      logger.whatsapp('Error 401 detectado, limpiando sesión para forzar nueva autenticación');
+      await this.clearCorruptedSession();
+      this.reconnectAttempts = 0; // Resetear contador para permitir nueva conexión
+    }
     
     this.connectionState = shouldReconnect ? 'reconnecting' : 'disconnected';
     
@@ -263,8 +338,41 @@ class WhatsAppService {
     } else {
       this.connectionState = 'disconnected';
       logger.whatsapp('Máximo de reintentos alcanzado o sesión cerrada');
-      
+    }
+  }
 
+  async clearCorruptedSession() {
+    try {
+      logger.whatsapp('Limpiando sesión corrupta...');
+      
+      // Eliminar archivos de credenciales
+      const fs = require('fs').promises;
+      const path = require('path');
+      
+      // Listar archivos en el directorio de sesión
+      try {
+        const files = await fs.readdir(this.sessionPath);
+        
+        // Eliminar archivos de credenciales (pero mantener logs)
+        for (const file of files) {
+          if (file.endsWith('.json') && !file.includes('log')) {
+            const filePath = path.join(this.sessionPath, file);
+            await fs.unlink(filePath);
+            logger.whatsapp(`Archivo eliminado: ${file}`);
+          }
+        }
+        
+        logger.whatsapp('Sesión corrupta limpiada exitosamente');
+        
+        // Resetear contador de reintentos
+        this.reconnectAttempts = 0;
+        
+      } catch (dirError) {
+        logger.error('Error al leer directorio de sesión:', dirError);
+      }
+      
+    } catch (error) {
+      logger.error('Error al limpiar sesión corrupta:', error);
     }
   }
 
@@ -325,8 +433,8 @@ class WhatsAppService {
         return;
       }
       
-      // Guardar en base de datos
-      await Message.create({
+      // Guardar en base de datos (evitar errores por duplicado usando upsert)
+      await Message.upsert({
         messageId: messageInfo.id,
         from: messageInfo.from,
         to: this.sock.user?.id || 'self',
@@ -361,31 +469,96 @@ class WhatsAppService {
         messageContent = content;
       }
       
-      // Enviar mensaje
-      const result = await this.sock.sendMessage(jid, messageContent, options);
+      // Envío con reintentos y backoff exponencial
+      const maxRetries = parseInt(process.env.WHATSAPP_MAX_RETRIES) || 3;
+      const baseDelay = parseInt(process.env.WHATSAPP_RETRY_DELAY) || 2000; // ms
+      let attempt = 0;
+      let lastError = null;
+      let result = null;
       
-      logger.message('sent', {
-        to: jid,
-        messageId: result.key.id,
-        timestamp: new Date().toISOString()
-      });
+      while (attempt <= maxRetries) {
+        try {
+          result = await this.sock.sendMessage(jid, messageContent, options);
+          
+          logger.message('sent', {
+            to: jid,
+            messageId: result.key.id,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Persistir éxito
+          await Message.create({
+            messageId: result.key.id,
+            from: this.sock.user?.id || 'self',
+            to: jid,
+            message: typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent),
+            type: options.type || 'text',
+            status: 'sent',
+            companyId: options.companyId || 1
+          });
+          
+          return {
+            success: true,
+            messageId: result.key.id,
+            timestamp: result.messageTimestamp
+          };
+        } catch (err) {
+          lastError = err;
+          attempt += 1;
+          
+          // Manejo específico del error "Bad MAC"
+          if (err.message?.includes('Bad MAC')) {
+            logger.error('Error de autenticación Bad MAC detectado, limpiando sesión...', {
+              to: jid,
+              attempt: attempt
+            });
+            
+            // Si es el primer intento con Bad MAC, limpiar sesión y reintentar
+            if (attempt === 1) {
+              await this.forceDisconnectAndCleanup();
+              // Reconectar después de limpiar
+              try {
+                await this.connect();
+              } catch (reconnectError) {
+                logger.error('Error al reconectar después de limpiar sesión:', reconnectError);
+              }
+              // Continuar con el siguiente intento
+              continue;
+            }
+          }
+          
+          // Clasificar error (network/transient)
+          const isTransient = this.isTransientError(err);
+          
+          logger.error('Error enviando mensaje (intento ' + attempt + ')', {
+            error: err.message,
+            to: jid,
+            transient: isTransient
+          });
+          
+          if (!isTransient || attempt > maxRetries) {
+            break;
+          }
+          
+          const delay = baseDelay * Math.pow(2, attempt - 1);
+          await this.sleep(delay);
+        }
+      }
       
-      // Guardar en base de datos
+      // Registrar fallo final
       await Message.create({
-        messageId: result.key.id,
+        messageId: 'FAILED_' + Date.now().toString(),
         from: this.sock.user?.id || 'self',
         to: jid,
         message: typeof messageContent === 'string' ? messageContent : JSON.stringify(messageContent),
         type: options.type || 'text',
-        status: 'sent',
+        status: 'failed',
+        errorMessage: lastError?.message || 'Error desconocido',
+        retryCount: Math.min(maxRetries, attempt),
         companyId: options.companyId || 1
       });
       
-      return {
-        success: true,
-        messageId: result.key.id,
-        timestamp: result.messageTimestamp
-      };
+      throw lastError || new Error('Fallo desconocido enviando mensaje');
       
     } catch (error) {
       logger.error('Error enviando mensaje:', error);
@@ -393,17 +566,42 @@ class WhatsAppService {
     }
   }
 
-  formatPhoneNumber(phone) {
-    // Limpiar número
-    let cleaned = phone.replace(/\D/g, '');
+   formatPhoneNumber(number) {
+    // Remover caracteres no numéricos
+    let cleaned = number.replace(/\D/g, '')
     
-    // Agregar código de país si no lo tiene
-    if (!cleaned.startsWith('58') && cleaned.length === 10) {
-      cleaned = '58' + cleaned;
+    // Si empieza con 58 (Venezuela), agregar @s.whatsapp.net
+    if (cleaned.startsWith('58')) {
+      return `${cleaned}@s.whatsapp.net`
     }
     
-    // Agregar sufijo de WhatsApp
-    return cleaned + '@s.whatsapp.net';
+    // Si empieza con 0, removerlo y agregar @s.whatsapp.net
+    if (cleaned.startsWith('0')) {
+      cleaned = cleaned.substring(1)
+    }
+    
+    // Por defecto, agregar @s.whatsapp.net
+    return `${cleaned}@s.whatsapp.net`
+  }
+  
+  isTransientError(err) {
+    // Heurística simple: errores de red/transitorios o de autenticación que pueden resolverse
+    const msg = (err?.message || '').toLowerCase();
+    return (
+      msg.includes('timeout') ||
+      msg.includes('network') ||
+      msg.includes('socket') ||
+      msg.includes('econnreset') ||
+      msg.includes('temporary') ||
+      msg.includes('rate limit') ||
+      msg.includes('bad mac') ||  // Error de autenticación que puede resolverse limpiando la sesión
+      msg.includes('mac') ||       // Cualquier error relacionado con MAC
+      msg.includes('auth')         // Errores de autenticación generales
+    );
+  }
+  
+  sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   getStatus() {
@@ -425,6 +623,47 @@ class WhatsAppService {
     if (this.sock) {
       await this.sock.logout();
       logger.whatsapp('Sesión cerrada exitosamente');
+    }
+  }
+
+  async forceReconnect() {
+    try {
+      logger.whatsapp('Forzando reconexión completa...');
+      
+      // Cerrar sesión actual si existe
+      if (this.sock) {
+        await this.sock.logout().catch(err => {
+          logger.warn('Error al cerrar sesión durante forceReconnect:', err.message);
+        });
+        this.sock = null;
+      }
+      
+      // Limpiar sesión y resetear estado
+      await this.clearCorruptedSession();
+      this.isConnected = false;
+      this.isConnecting = false;
+      this.qrCode = null;
+      this.connectionState = 'disconnected';
+      this.reconnectAttempts = 0;
+      
+      // Emitir estado de desconexión
+      this.io.emit('connection-status', {
+        status: 'disconnected',
+        reason: 'force_reconnect',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Esperar un momento antes de reconectar
+      await this.sleep(2000);
+      
+      // Iniciar nueva conexión
+      await this.connect();
+      
+      logger.whatsapp('Reconexión forzada completada');
+      
+    } catch (error) {
+      logger.error('Error durante forceReconnect:', error);
+      throw error;
     }
   }
 

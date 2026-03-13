@@ -71,6 +71,12 @@ class Pago extends Model
         return $this->belongsTo(Matricula::class);
     }
 
+    // Alias para obtener el cliente (estudiante) a través de la matrícula
+    public function getClienteAttribute()
+    {
+        return $this->matricula ? $this->matricula->student : null;
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

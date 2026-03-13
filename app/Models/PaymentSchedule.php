@@ -98,15 +98,50 @@ class PaymentSchedule extends Model
         return $this->monto_pagado >= $this->monto;
     }
 
-    public function registrarPago($monto)
+    /**
+     * Sincroniza el monto pagado desde los pagos reales aprobados
+     * y actualiza el estado de la cuota según corresponda
+     */
+    public function syncPaidAmountFromPayments()
     {
-        $this->monto_pagado += $monto;
+        // Sumar todos los pagos aprobados asociados a esta cuota
+        $totalPagado = $this->pagoDetalles()
+            ->whereHas('pago', function ($query) {
+                $query->where('estado', 'aprobado');
+            })
+            ->sum('subtotal');
+
+        $this->monto_pagado = $totalPagado;
         
-        if ($this->monto_pagado >= $this->monto) {
+        // Actualizar estado según corresponda
+        if ($this->esta_pagado) {
             $this->estado = 'pagado';
-            $this->fecha_pago = now();
+        } elseif ($this->fecha_vencimiento < now() && $this->estado !== 'pagado') {
+            $this->estado = 'vencido';
+        } else {
+            $this->estado = 'pendiente';
         }
-        
+
         $this->save();
+        
+        return $totalPagado;
+    }
+
+    /**
+     * Boot method para manejar eventos del modelo
+     * Se asegura de actualizar automáticamente el estado de la cuota
+     * cuando se registran nuevos pagos
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Cuando se crea un pago detalle, actualizar la cuota correspondiente
+        static::created(function ($schedule) {
+            $schedule->syncPaidAmountFromPayments();
+        });
+
+        // También podríamos escuchar eventos updating/updated si necesitamos
+        // manejar cambios en los pagos existentes
     }
 }

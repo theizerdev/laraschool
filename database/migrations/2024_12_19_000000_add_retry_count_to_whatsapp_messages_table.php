@@ -13,6 +13,10 @@ return new class extends Migration
      */
     public function up()
     {
+        if (Schema::hasColumn('whatsapp_messages', 'retry_count')) {
+            return;
+        }
+
         Schema::table('whatsapp_messages', function (Blueprint $table) {
             // Añadir campo para contador de reintentos
             $table->unsignedTinyInteger('retry_count')->default(0)->after('metadata');

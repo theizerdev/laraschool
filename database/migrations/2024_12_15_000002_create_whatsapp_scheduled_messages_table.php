@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up()
     {
+        if (Schema::hasTable('whatsapp_scheduled_messages')) {
+            return;
+        }
+
         Schema::create('whatsapp_scheduled_messages', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('template_id')->nullable();

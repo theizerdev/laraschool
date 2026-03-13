@@ -9,6 +9,58 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            Schema::dropIfExists('pago_detalles');
+            Schema::dropIfExists('pagos');
+
+            Schema::create('pagos', function (Blueprint $table) {
+                $table->id();
+                $table->string('serie', 10);
+                $table->string('numero', 20);
+                $table->string('tipo_pago');
+                $table->date('fecha');
+                $table->unsignedBigInteger('matricula_id');
+                $table->unsignedBigInteger('user_id');
+                $table->decimal('subtotal', 10, 2)->default(0);
+                $table->decimal('descuento', 10, 2)->default(0);
+                $table->decimal('total', 10, 2);
+                $table->string('metodo_pago')->nullable();
+                $table->string('referencia')->nullable();
+                $table->enum('estado', ['pendiente', 'aprobado', 'cancelado'])->default('pendiente');
+                $table->text('observaciones')->nullable();
+                $table->unsignedBigInteger('empresa_id');
+                $table->unsignedBigInteger('sucursal_id');
+                $table->timestamps();
+                $table->softDeletes();
+
+                $table->index(['empresa_id', 'sucursal_id', 'fecha']);
+                $table->index(['matricula_id', 'estado']);
+                $table->unique(['serie', 'numero', 'empresa_id', 'sucursal_id']);
+            });
+
+            Schema::create('pago_detalles', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('pago_id');
+                $table->unsignedBigInteger('concepto_pago_id');
+                $table->unsignedBigInteger('payment_schedule_id')->nullable();
+                $table->string('descripcion');
+                $table->decimal('cantidad', 10, 2)->default(1);
+                $table->decimal('precio_unitario', 10, 2);
+                $table->decimal('subtotal', 10, 2);
+                $table->timestamps();
+
+                $table->index('pago_id');
+            });
+
+            if (!Schema::hasColumn('payment_schedules', 'fecha_pago')) {
+                Schema::table('payment_schedules', function (Blueprint $table) {
+                    $table->date('fecha_pago')->nullable()->after('fecha_vencimiento');
+                });
+            }
+
+            return;
+        }
+
         // Obtener foreign keys existentes y eliminarlas
         $foreignKeys = DB::select("SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pagos' AND CONSTRAINT_NAME != 'PRIMARY'");
 
