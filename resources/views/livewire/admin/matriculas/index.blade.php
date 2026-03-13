@@ -174,12 +174,16 @@
                             </select>
                         </div>
                         <div class="col-md-3 d-flex align-items-end gap-2">
-                            <button type="button" class="btn btn-label-secondary" wire:click="clearFilters">
-                                <i class="ri ri-eraser-line"></i> Limpiar
-                            </button>
+                            
                             <button type="button" class="btn btn-label-success" wire:click="export">
                                 <i class="mdi mdi-file-excel"></i> Exportar
                             </button>
+                            @can('edit matriculas')
+                            <button type="button" class="btn btn-label-warning" wire:click="desactivarMatriculasSolventes" 
+                                    onclick="confirm('¿Está seguro de desactivar TODAS las matrículas solventes? Las matrículas con pagos pendientes no se verán afectadas.') || event.stopImmediatePropagation()">
+                                <i class="ri ri-pause-circle-line"></i> Desactivar Solventes
+                            </button>
+                            @endcan
                         </div>
                     </div>
                 </div>

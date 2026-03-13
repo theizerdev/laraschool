@@ -63,6 +63,29 @@ class Index extends Component
         }
     }
 
+    public function desactivarMatriculasSolventes()
+    {
+        if (!auth()->user()->can('edit matriculas')) {
+            session()->flash('error', 'No tienes permiso para cambiar el estado de las matrículas.');
+            return;
+        }
+
+        try {
+            // Desactivar solo las matrículas solventes que están activas
+            $matriculasAfectadas = Matricula::where('estado', 'activo')
+                ->where('solvente', true)
+                ->update(['estado' => 'inactivo']);
+
+            if ($matriculasAfectadas > 0) {
+                session()->flash('message', "Se han desactivado {$matriculasAfectadas} matrículas solventes exitosamente.");
+            } else {
+                session()->flash('info', 'No se encontraron matrículas solventes para desactivar. Solo se desactivan las que están solventes y activas.');
+            }
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error al desactivar matrículas solventes: ' . $e->getMessage());
+        }
+    }
+
     public function delete(Matricula $matricula)
     {
         // Verificar permiso para eliminar matrículas

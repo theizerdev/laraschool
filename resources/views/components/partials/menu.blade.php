@@ -67,7 +67,7 @@
   <div class="menu-inner-shadow"></div>
 
   <ul class="menu-inner py-1">
-    <!-- Dashboard -->
+     <!-- Dashboard -->
     <li class="menu-item {{ request()->routeIs('admin/dashboard') || request()->routeIs('superadmin/dashboard') ? 'active' : '' }}">
       <a href="{{ url('/') }}" class="menu-link">
         <i class="menu-icon tf-icons ri ri-home-4-line"></i>
@@ -149,10 +149,10 @@
       @endcan
     @canany(['access matriculas', 'access programas', 'access subjects', 'access study_plans'])
   <!-- Matrículas y Materias -->
-  <li class="menu-item {{ request()->routeIs('admin.matriculas.*') || request()->routeIs('admin.programas.*') || request()->routeIs('admin.subjects.*') || request()->routeIs('admin.study-plans.*') ? 'active open' : '' }}">
+    <li class="menu-item {{ request()->routeIs('admin.matriculas.*') ? 'active' : '' }}">
     <a href="javascript:void(0);" class="menu-link menu-toggle">
       <i class="menu-icon tf-icons ri ri-graduation-cap-line"></i>
-      <div>Matrículas y Materias</div>
+      <div>Matrículas</div>
     </a>
     <ul class="menu-sub">
      
@@ -182,7 +182,7 @@
       @can('create matriculas')
       <li class="menu-item {{ request()->routeIs('admin.matriculas.create') ? 'active' : '' }}">
         <a href="{{ route('admin.matriculas.create') }}" class="menu-link">
-          <div>Crear</div>
+          <div>Crear matrícula</div>
         </a>
       </li>
       @endcan
@@ -527,56 +527,16 @@
       </a>
       <ul class="menu-sub">
         @can('access whatsapp')
-        <li class="menu-item {{ request()->routeIs('admin.whatsapp.dashboard') ? 'active' : '' }}">
-          <a href="{{ route('admin.whatsapp.dashboard') }}" class="menu-link">
-            <div>Dashboard</div>
-          </a>
-        </li>
-        <li class="menu-item {{ request()->routeIs('admin.whatsapp.connection') ? 'active' : '' }}">
-          <a href="{{ route('admin.whatsapp.connection') }}" class="menu-link">
-            <div>Conexión</div>
+        <li class="menu-item {{ request()->routeIs('admin.whatsapp.index') ? 'active' : '' }}">
+          <a href="{{ route('admin.whatsapp.index') }}" class="menu-link">
+            <div>Panel</div>
           </a>
         </li>
         @endcan
-        @can('create whatsapp templates')
-        <li class="menu-item {{ request()->routeIs('admin.whatsapp.templates.index') ? 'active' : '' }}">
-          <a href="{{ route('admin.whatsapp.templates.index') }}" class="menu-link">
-            <div>Plantillas</div>
-          </a>
-        </li>
-        @endcan
-        @can('send whatsapp messages')
-        <li class="menu-item {{ request()->routeIs('admin.whatsapp.send-messages') ? 'active' : '' }}">
-          <a href="{{ route('admin.whatsapp.send-messages') }}" class="menu-link">
-            <div>Enviar Mensajes</div>
-          </a>
-        </li>
-        @endcan
-        @can('send whatsapp messages')
-        <li class="menu-item {{ request()->routeIs('admin.whatsapp.history') ? 'active' : '' }}">
-          <a href="{{ route('admin.whatsapp.history') }}" class="menu-link">
-            <div>Historial</div>
-          </a>
-        </li>
-        @endcan
-        @can('schedule whatsapp messages')
-        <li class="menu-item {{ request()->routeIs('admin.whatsapp.scheduled-messages') ? 'active' : '' }}">
-          <a href="{{ route('admin.whatsapp.scheduled-messages') }}" class="menu-link">
-            <div>Mensajes Programados</div>
-          </a>
-        </li>
-        @endcan
-        @can('view whatsapp statistics')
-        <li class="menu-item {{ request()->routeIs('admin.whatsapp.statistics') ? 'active' : '' }}">
-          <a href="{{ route('admin.whatsapp.statistics') }}" class="menu-link">
-            <div>Estadísticas</div>
-          </a>
-        </li>
-        @endcan
+        
       </ul>
     </li>
-    @endcan
-
+   @endcan
     @can('access biblioteca')
     <!-- Biblioteca Digital -->
     <li class="menu-item {{ request()->routeIs('admin.biblioteca.*') ? 'active' : '' }}">
@@ -657,5 +617,6 @@
       </ul>
     </li>
     @endcan
+   
   </ul>
 </aside>
