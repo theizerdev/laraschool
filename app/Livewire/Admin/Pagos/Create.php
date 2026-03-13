@@ -618,6 +618,7 @@ class Create extends Component
             return redirect()->route('admin.pagos.create');
         });
         } catch (\Throwable $th) {
+            dd($th);
             session()->flash('error', 'Error al crear el pago: ' . $th->getMessage());
         }
     }
@@ -633,7 +634,7 @@ class Create extends Component
         }
 
         // Cargar todos los payment schedules de la matrícula
-        $schedules = PaymentSchedule::where('matricula_id', $matriculaId)
+        $schedules = \App\Models\PaymentSchedule::where('matricula_id', $matriculaId)
             ->orderBy('numero_cuota')
             ->get()
             ->keyBy('numero_cuota'); // Indexar por número de cuota para acceso rápido

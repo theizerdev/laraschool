@@ -7,6 +7,7 @@ use App\Models\PagoDetalle;
 use App\Models\PlanPago;
 use App\Models\ConceptoPago;
 use App\Models\Caja;
+use App\Models\PaymentSchedule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Services\WhatsAppService;

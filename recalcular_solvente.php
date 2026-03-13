@@ -35,6 +35,8 @@ foreach ($matriculas as $matricula) {
    if($nuevoEstado) {
         $solventes++;
     } else {
+        $matricula->estado = 'activo'; // Asegurar que los pagos estén sincronizados
+         $matricula->save();
         $con_deudas++;
     }
 }
