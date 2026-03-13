@@ -301,6 +301,9 @@ class Create extends Component
                     'sucursal_id' => auth()->user()->sucursal_id,
                 ]);
             }
+            
+            // Actualizar el estado de solvencia después de crear el cronograma
+            $matricula->syncPaymentSchedules();
         } catch (\Exception $e) {
             \Log::error('Error creating payment schedule: ' . $e->getMessage());
         }
