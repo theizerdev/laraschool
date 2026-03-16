@@ -142,6 +142,9 @@
                             <p class="mb-0 text-muted">Bolívares por Euro (EUR)</p>
                             <small class="text-muted">Actualizado: {{ $todayRate->fetch_time->format('H:i') }}</small>
                         </div>
+                         <button wire:click="editRate()" class="btn btn-primary">
+                        <i class="ri ri-add-line me-1"></i>Editar tasa del dia
+                    </button>
                     </div>
                 </div>
             </div>
@@ -156,11 +159,11 @@
                 </div>
                 <div class="card-body text-center">
                     <p class="mb-3">Aún no se ha registrado una tasa de cambio para el día de hoy.</p>
-                    @can('edit exchange-rates')
+                  
                     <button wire:click="editRate()" class="btn btn-primary">
                         <i class="ri ri-add-line me-1"></i>Registrar Tasa Manual
                     </button>
-                    @endcan
+                    
                 </div>
             </div>
         </div>
@@ -318,7 +321,7 @@
                     <div class="modal-header">
                         <h5 class="modal-title">
                             <i class="ri ri-edit-line me-2"></i>
-                            {{ 'Crear Tasa Manual' }}
+                            {{ 'Modificar Tasa Manual' }}
                         </h5>
                         <button type="button" class="btn-close" wire:click="closeEditModal"></button>
                     </div>
