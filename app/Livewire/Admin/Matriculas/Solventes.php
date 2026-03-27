@@ -95,6 +95,7 @@ class Solventes extends Component
     {
         return Matricula::with(['estudiante', 'programa', 'periodo'])
             ->where('solvente', true) // Solo matrículas solventes
+            ->whereHas('estudiante')
             ->when($this->search, function ($query) {
                 $query->whereHas('estudiante', function ($subQuery) {
                     $subQuery->where('nombres', 'like', '%' . $this->search . '%')
@@ -150,21 +151,28 @@ class Solventes extends Component
     public function render()
     {
         // Obtener solo matrículas solventes
-        $matriculas = Matricula::with(['estudiante', 'programa', 'periodo', 'paymentSchedules'])
-            ->where('solvente', true) // Solo solventes
+        $matriculas = Matricula::query()
+            ->select('matriculas.*')
+            ->join('students', 'matriculas.estudiante_id', '=', 'students.id')
+            ->leftJoin('programas', 'matriculas.programa_id', '=', 'programas.id')
+            ->leftJoin('school_periods', 'matriculas.periodo_id', '=', 'school_periods.id')
+            ->with(['estudiante', 'programa', 'periodo', 'paymentSchedules'])
             ->when($this->search, function ($query) {
-                $query->whereHas('estudiante', function ($subQuery) {
-                    $subQuery->where('nombres', 'like', '%' . $this->search . '%')
-                        ->orWhere('apellidos', 'like', '%' . $this->search . '%')
-                        ->orWhere('documento_identidad', 'like', '%' . $this->search . '%');
+                $query->where(function ($subQuery) {
+                    $subQuery->where('students.nombres', 'like', '%' . $this->search . '%')
+                          ->orWhere('students.apellidos', 'like', '%' . $this->search . '%')
+                          ->orWhere('students.documento_identidad', 'like', '%' . $this->search . '%');
                 });
             })
             ->when($this->status !== '', function ($query) {
-                $query->where('estado', $this->status);
+                $query->where('matriculas.estado', $this->status);
             })
-            ->whereIn('id', function($subquery) {
+            ->whereIn('matriculas.id', function($subquery) {
                 $subquery->selectRaw('MAX(id)')
                     ->from('matriculas')
+                    ->where('solvente', true)
+                    ->whereNotNull('periodo_id')
+                    ->whereNotNull('estudiante_id')
                     ->groupBy('estudiante_id');
             })
             ->orderBy($this->sortBy, $this->sortDirection)
@@ -172,6 +180,7 @@ class Solventes extends Component
 
         // Estadísticas - Solo matrículas solventes únicas por estudiante
         $matriculasUnicas = Matricula::where('solvente', true)
+            ->whereHas('estudiante')
             ->whereIn('id', function($subquery) {
                 $subquery->selectRaw('MAX(id)')
                     ->from('matriculas')

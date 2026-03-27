@@ -116,7 +116,7 @@ class Edit extends Component
                 // Obtener todos los períodos ordenados, incluyendo el actual
                 $this->periodos = $periodoQuery->orderBy('name')->get();
             } else {
-                $this->periodos = collect(); // Lista vacía si el período no existe
+                $this->periodos = $periodoQuery->orderBy('name')->get(); // Lista vacía si el período no existe
             }
         } else {
             $this->periodos = $periodoQuery->orderBy('name')->get();

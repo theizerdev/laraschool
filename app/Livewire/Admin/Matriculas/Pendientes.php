@@ -93,8 +93,11 @@ class Pendientes extends Component
 
     protected function getExportQuery()
     {
+        // Query para exportación con eager loading explícito de estudiante
+        // Esto asegura que los datos del estudiante estén siempre disponibles durante la exportación
         return Matricula::with(['estudiante', 'programa', 'periodo'])
-            ->where('solvente', false) // Solo matrículas pendientes
+            ->whereHas('estudiante')
+            ->where('solvente', false) // <- Solo pendientes
             ->when($this->search, function ($query) {
                 $query->whereHas('estudiante', function ($subQuery) {
                     $subQuery->where('nombres', 'like', '%' . $this->search . '%')
@@ -149,9 +152,11 @@ class Pendientes extends Component
 
     public function render()
     {
-        // Obtener solo matrículas pendientes
+        // Obtener solo matrículas pendientes con eager loading explícito
+        // Se carga siempre la relación 'estudiante' para evitar problemas de N+1 queries
         $matriculas = Matricula::with(['estudiante', 'programa', 'periodo', 'paymentSchedules'])
-            ->where('solvente', false) // Solo pendientes
+            ->whereHas('estudiante')
+            ->where('solvente', false) // <- Solo pendientes
             ->when($this->search, function ($query) {
                 $query->whereHas('estudiante', function ($subQuery) {
                     $subQuery->where('nombres', 'like', '%' . $this->search . '%')
@@ -170,23 +175,25 @@ class Pendientes extends Component
             ->orderBy($this->sortBy, $this->sortDirection)
             ->paginate($this->perPage);
 
-        // Estadísticas - Solo matrículas pendientes únicas por estudiante
-        $matriculasUnicas = Matricula::where('solvente', false)
+        // Verificación explícita de eager loading: asegurar que los estudiantes estén cargados
+        $matriculas->loadMissing(['estudiante']);
+
+        // Estadísticas - Contando matrículas únicas por estudiante
+        $uniqueMatriculasQuery = Matricula::whereHas('estudiante')
+            ->where('solvente', false) // <- Solo pendientes
             ->whereIn('id', function($subquery) {
-                $subquery->selectRaw('MAX(id)')
-                    ->from('matriculas')
-                    ->groupBy('estudiante_id');
-            });
-        
-        $totalMatriculas = (clone $matriculasUnicas)->count();
-        $matriculasActivas = (clone $matriculasUnicas)->where('estado', 'activo')->count();
-        $matriculasInactivas = (clone $matriculasUnicas)->where('estado', 'inactivo')->count();
-        $matriculasGraduadas = (clone $matriculasUnicas)->where('estado', 'graduado')->count();
-        $ingresosTotales = (clone $matriculasUnicas)->where('estado', 'activo')->sum('costo');
-        
-        // Todas las matrículas pendientes se consideran pendientes
-        $matriculasSolventes = 0;
-        $matriculasPendientes = $totalMatriculas;
+            $subquery->selectRaw('MAX(id)')
+                ->from('matriculas')
+                ->groupBy('estudiante_id');
+        });
+
+        $totalMatriculas = (clone $uniqueMatriculasQuery)->count();
+        $matriculasActivas = (clone $uniqueMatriculasQuery)->where('estado', 'activo')->count();
+        $matriculasInactivas = (clone $uniqueMatriculasQuery)->where('estado', 'inactivo')->count();
+        $matriculasGraduadas = (clone $uniqueMatriculasQuery)->where('estado', 'graduado')->count();
+        $ingresosTotales = (clone $uniqueMatriculasQuery)->where('estado', 'activo')->sum('costo');
+        $matriculasSolventes = (clone $uniqueMatriculasQuery)->where('solvente', true)->count();
+        $matriculasPendientes = (clone $uniqueMatriculasQuery)->where('solvente', false)->count();
 
         return view('livewire.admin.matriculas.pendientes', compact(
             'matriculas',

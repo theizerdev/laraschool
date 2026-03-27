@@ -154,6 +154,7 @@ class Create extends Component
         $this->generatePaymentSchedule();
     }
 
+
     public function generatePaymentSchedule()
     {
         // Solo generar si tenemos todos los datos necesarios
@@ -199,7 +200,7 @@ class Create extends Component
                 'numero_cuota' => 0,
                 'descripcion' => 'Cuota inicial',
                 'monto' => $this->cuota_inicial,
-                'fecha_vencimiento' => $periodo->start_date
+                'fecha_vencimiento' => $this->fecha_matricula
             ];
         }
 

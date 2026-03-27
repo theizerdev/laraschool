@@ -134,9 +134,9 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th wire:click="sortBy('students.nombres')" style="cursor: pointer;">
+                        <th wire:click="sortBy('estudiante_id')" style="cursor: pointer;">
                             Estudiante
-                            @if($sortBy === 'students.nombres') 
+                            @if($sortBy === 'estudiante_id') 
                                 <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
                             @endif
                         </th>
@@ -175,13 +175,20 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-sm me-2">
-                                        <span class="avatar-initial rounded bg-label-primary">{{ substr($matricula->estudiante->nombres ?? '', 0, 1) }}</span>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0">{{ $matricula->estudiante->nombres ?? '' }} {{ $matricula->estudiante->apellidos ?? '' }}</h6>
-                                        <small class="text-muted">{{ $matricula->estudiante->documento_identidad ?? '' }}</small>
-                                    </div>
+                                    @if($matricula->estudiante)
+                                        <div class="avatar avatar-sm me-2">
+                                            <span class="avatar-initial rounded bg-label-primary">{{ substr($matricula->estudiante->nombres ?? 'E', 0, 1) }}</span>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ $matricula->estudiante->nombres ?? '' }} {{ $matricula->estudiante->apellidos ?? '' }}</h6>
+                                            <small class="text-muted">{{ $matricula->estudiante->documento_identidad ?? '' }}</small>
+                                        </div>
+                                    @else
+                                        <div>
+                                            <h6 class="mb-0">Estudiante no disponible</h6>
+                                            <small class="text-muted">Sin información</small>
+                                        </div>
+                                    @endif
                                 </div>
                             </td>
                             <td>
