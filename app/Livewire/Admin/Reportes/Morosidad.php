@@ -34,6 +34,8 @@ class Morosidad extends Component
     public $mostrarModal = false;
     public $estudianteSeleccionado = null;
     public $whatsappStatus = 'disconnected';
+    public $sortBy  = 'estudiante_id';
+    public $sortDirection  = 'asc';
 
     public function mount()
     {
@@ -46,7 +48,7 @@ class Morosidad extends Component
             'total_morosos' => 0,
             'porcentaje_morosidad' => 0
         ];
-        
+
         // Verificar estado de WhatsApp
         $this->checkWhatsAppStatus();
     }
@@ -71,7 +73,7 @@ class Morosidad extends Component
 
     public function cargarReporte()
     {
-        $query = Matricula::with(['student', 'programa.nivelEducativo', 'cronogramaPagos'])
+        $query = Matricula::with(['estudiante', 'programa.nivelEducativo', 'cronogramaPagos'])
             ->where('matriculas.estado', 'activo');
 
         if ($this->programa_id) {
@@ -81,49 +83,85 @@ class Morosidad extends Component
                   ->where('programas.nivel_educativo_id', $this->nivel_educativo_id);
         }
 
+        // Aseguramos que solo se traigan matrículas con estudiante asociado
+        $query->whereHas('estudiante');
+
         $matriculas = $query->get();
         $fechaCorte = $this->fecha_hasta ? \Carbon\Carbon::parse($this->fecha_hasta) : now();
 
         // Calcular morosidad para cada matrícula
         $this->morosos = [];
         foreach ($matriculas as $matricula) {
-            // Obtener cuotas vencidas hasta la fecha de corte
-            $cuotasVencidas = $matricula->cronogramaPagos
-                ->where('fecha_vencimiento', '<=', $fechaCorte)
-                ->where('estado', 'pendiente');
-
-            if ($this->fecha_desde) {
-                $fechaDesde = \Carbon\Carbon::parse($this->fecha_desde);
-                $cuotasVencidas = $cuotasVencidas->where('fecha_vencimiento', '>=', $fechaDesde);
+            // Verificar que la matrícula tenga estudiante asociado
+            if (!$matricula->estudiante) {
+                continue; // Saltar matrículas sin estudiante
             }
 
-            $montoVencido = $cuotasVencidas->sum('monto');
-            
-            // Obtener el total pagado
-            $totalPagado = Pago::where('matricula_id', $matricula->id)
-                ->where('estado', 'aprobado')
-                ->sum('total');
+            // Recargar la relación de cronograma de pagos si es necesario
+            if (!$matricula->relationLoaded('cronogramaPagos')) {
+                $matricula->load('cronogramaPagos');
+            }
 
-            $costoTotal = $matricula->costo ?? 0;
-            $saldoPendiente = $costoTotal - $totalPagado;
+            // Obtener cuotas en el rango de fechas
+            $cuotasRango = $matricula->cronogramaPagos;
 
-            // Considerar moroso si tiene cuotas vencidas en el rango de fechas
-            if ($montoVencido > 0) {
-                $montoPagadoRango = $cuotasVencidas->sum('monto_pagado');
-                $saldoPendienteRango = $montoVencido - $montoPagadoRango;
-                $porcentajePagadoRango = $montoVencido > 0 ? ($montoPagadoRango / $montoVencido) * 100 : 0;
-                
-                $this->morosos[] = [
-                    'matricula' => $matricula,
-                    'total_pagado' => $totalPagado,
-                    'saldo_pendiente' => $saldoPendiente,
-                    'monto_vencido' => $montoVencido,
-                    'cantidad_cuotas' => $cuotasVencidas->count(),
-                    'monto_pagado_rango' => $montoPagadoRango,
-                    'saldo_pendiente_rango' => $saldoPendienteRango,
-                    'porcentaje_pagado_rango' => $porcentajePagadoRango,
-                    'porcentaje_pagado' => $costoTotal > 0 ? ($totalPagado / $costoTotal) * 100 : 0
-                ];
+            // Filtrar cuotas según el rango de fechas
+            if ($this->fecha_desde) {
+                $fechaDesde = \Carbon\Carbon::parse($this->fecha_desde);
+                $cuotasRango = $cuotasRango->filter(function ($cuota) use ($fechaDesde) {
+                    return $cuota->fecha_vencimiento->gte($fechaDesde);
+                });
+            }
+
+            if ($this->fecha_hasta) {
+                $fechaHasta = \Carbon\Carbon::parse($this->fecha_hasta);
+                $cuotasRango = $cuotasRango->filter(function ($cuota) use ($fechaHasta) {
+                    return $cuota->fecha_vencimiento->lte($fechaHasta);
+                });
+            }
+
+            // Calcular valores para el rango de fechas
+            $costoRango = $cuotasRango->sum('monto');
+            $pagadoRango = $cuotasRango->sum('monto_pagado');
+            $saldoPendienteRango = $cuotasRango->sum('saldo_pendiente');
+
+            // Calcular porcentaje pagado en el rango
+            $porcentajePagadoRango = $costoRango > 0 ? ($pagadoRango / $costoRango) * 100 : 0;
+
+            // Calcular estado basado en las cuotas del rango
+            $estado = 'Al día';
+            if ($saldoPendienteRango > 0.01) {
+                // Verificar si hay cuotas vencidas
+                $cuotasVencidas = $cuotasRango->filter(function ($cuota) use ($fechaCorte) {
+                    return $cuota->fecha_vencimiento->lt($fechaCorte) && $cuota->saldo_pendiente > 0.01;
+                });
+
+                if ($cuotasVencidas->count() > 0) {
+                    $estado = 'Moroso';
+                } else {
+                    $estado = 'Pendiente';
+                }
+            }
+
+            // Considerar moroso si tiene cuotas vencidas pendientes de pago en el rango de fechas
+            if ($saldoPendienteRango > 0.01) {
+                // Verificar si hay cuotas vencidas
+                $cuotasVencidas = $cuotasRango->filter(function ($cuota) use ($fechaCorte) {
+                    return $cuota->fecha_vencimiento->lt($fechaCorte) && $cuota->saldo_pendiente > 0.01;
+                });
+
+                if ($cuotasVencidas->count() > 0) {
+                    $this->morosos[] = [
+                        'matricula' => $matricula,
+                        'costo_rango' => $costoRango,
+                        'pagado_rango' => $pagadoRango,
+                        'saldo_pendiente_rango' => $saldoPendienteRango,
+                        'porcentaje_pagado_rango' => $porcentajePagadoRango,
+                        'cantidad_cuotas' => $cuotasRango->count(),
+                        'estado' => $estado,
+                        'cuotas_detalle' => $cuotasRango // para mostrar en el detalle si es necesario
+                    ];
+                }
             }
         }
 
@@ -143,7 +181,7 @@ class Morosidad extends Component
     {
         // Obtener la matrícula con cronograma de pagos y pagos realizados
         $matricula = Matricula::with([
-            'student',
+            'estudiante',
             'programa.nivelEducativo',
             'cronogramaPagos',
             'pagos.detalles.conceptoPago'
@@ -154,20 +192,24 @@ class Morosidad extends Component
         }
 
         $this->estudianteSeleccionado = $matricula;
-        
+
         // Filtrar cuotas según el rango de fechas
-        $cuotas = $matricula->cronogramaPagos->where('estado', 'pendiente');
-        
+        $cuotas = $matricula->cronogramaPagos;
+
         if ($this->fecha_hasta) {
             $fechaCorte = \Carbon\Carbon::parse($this->fecha_hasta);
-            $cuotas = $cuotas->where('fecha_vencimiento', '<=', $fechaCorte);
+            $cuotas = $cuotas->filter(function ($cuota) use ($fechaCorte) {
+                return $cuota->fecha_vencimiento->lte($fechaCorte);
+            });
         }
-        
+
         if ($this->fecha_desde) {
             $fechaDesde = \Carbon\Carbon::parse($this->fecha_desde);
-            $cuotas = $cuotas->where('fecha_vencimiento', '>=', $fechaDesde);
+            $cuotas = $cuotas->filter(function ($cuota) use ($fechaDesde) {
+                return $cuota->fecha_vencimiento->gte($fechaDesde);
+            });
         }
-        
+
         $this->detalleDeuda = $cuotas;
         $this->mostrarModal = true;
 
@@ -182,7 +224,7 @@ class Morosidad extends Component
             return;
         }
 
-        $estudiante = $this->estudianteSeleccionado->student;
+        $estudiante = $this->estudianteSeleccionado->estudiante; // Usando la relación correcta
 
         // Verificar si el estudiante es mayor de edad
         $esMayorDeEdad = $estudiante->fecha_nacimiento &&
@@ -255,7 +297,7 @@ class Morosidad extends Component
         try {
             $whatsappService = app(WhatsAppService::class);
             $status = $whatsappService->getStatus();
-            
+
             $this->whatsappStatus = $status['connectionState'] ?? 'disconnected';
         } catch (\Exception $e) {
             $this->whatsappStatus = 'disconnected';
@@ -269,9 +311,9 @@ class Morosidad extends Component
             return;
         }
 
-        $estudiante = $this->estudianteSeleccionado->student;
+        $estudiante = $this->estudianteSeleccionado->estudiante; // Usando la relación correcta
         
-        
+
         $esMayorDeEdad = $estudiante->fecha_nacimiento && $estudiante->fecha_nacimiento->age >= 18;
         
         $telefono = null;
@@ -323,7 +365,7 @@ class Morosidad extends Component
     {
         $nombreEstudiante = $estudiante->nombres . ' ' . $estudiante->apellidos;
         $saldoFormateado = '$' . number_format($saldoPendiente, 2, ',', '.');
-        
+
         if ($esMayorDeEdad) {
             $mensaje = "🔔 *Recordatorio de Pago - U.E VARGAS II*\n\n";
             $mensaje .= "Estimado/a {$nombreEstudiante},\n\n";
@@ -334,18 +376,18 @@ class Morosidad extends Component
             $mensaje .= "Estimado/a {$representante},\n\n";
             $mensaje .= "Le recordamos que el estudiante *{$nombreEstudiante}* tiene un saldo pendiente de *{$saldoFormateado}* en su matrícula.\n\n";
         }
-        
+
         $mensaje .= "📅 *Cuotas vencidas:*\n";
         foreach ($this->detalleDeuda as $cuota) {
             $fechaVencimiento = \Carbon\Carbon::parse($cuota->fecha_vencimiento)->format('d/m/Y');
             $montoCuota = '$' . number_format($cuota->monto, 2, ',', '.');
             $mensaje .= "• {$cuota->descripcion}: {$montoCuota} (Vence: {$fechaVencimiento})\n";
         }
-        
+
         $mensaje .= "\n💳 Para realizar su pago, puede acercarse a nuestras oficinas o contactarnos.\n\n";
         $mensaje .= "Gracias por su atención.\n\n";
         $mensaje .= "*U.E VARGAS II*";
-        
+
         return $mensaje;
     }
 
@@ -355,20 +397,20 @@ class Morosidad extends Component
         $empresa = \DB::table('empresas')->where('id', 1)->first();
         $pais = $empresa ? \DB::table('pais')->where('id', $empresa->pais_id)->first() : null;
         $codigoPais = $pais ? $pais->codigo_telefonico : '58'; // Default Venezuela
-        
+
         // Limpiar número
         $cleaned = preg_replace('/[^0-9]/', '', $number);
-        
+
         // Si ya tiene código de país, devolverlo
         if (strlen($cleaned) > 10 && str_starts_with($cleaned, $codigoPais)) {
             return $cleaned;
         }
-        
+
         // Quitar el 0 inicial si existe
         if (str_starts_with($cleaned, '0')) {
             $cleaned = substr($cleaned, 1);
         }
-        
+
         // Agregar código de país
         return $codigoPais . $cleaned;
     }
@@ -398,8 +440,8 @@ class Morosidad extends Component
             $sheet->setCellValue('A3', 'Fecha de generación:');
             $sheet->setCellValue('B3', now()->format('d/m/Y H:i:s'));
             $sheet->setCellValue('A4', 'Rango de fechas:');
-            $rangoFechas = ($this->fecha_desde ? \Carbon\Carbon::parse($this->fecha_desde)->format('d/m/Y') : 'Inicio') . 
-                          ' - ' . 
+            $rangoFechas = ($this->fecha_desde ? \Carbon\Carbon::parse($this->fecha_desde)->format('d/m/Y') : 'Inicio') .
+                          ' - ' .
                           ($this->fecha_hasta ? \Carbon\Carbon::parse($this->fecha_hasta)->format('d/m/Y') : 'Hoy');
             $sheet->setCellValue('B4', $rangoFechas);
             $sheet->setCellValue('A5', 'Total estudiantes:');
@@ -414,7 +456,7 @@ class Morosidad extends Component
             $sheet->getStyle('E3:E4')->getFont()->setBold(true)->getColor()->setRGB('DC3545');
 
             // Encabezados de la tabla
-            $headers = ['Estudiante', 'Documento', 'Programa', 'Nivel', 'Cuotas Vencidas', 'Costo Total (Rango)', 'Total Pagado (Rango)', 'Saldo Pendiente (Rango)', '% Pagado (Rango)'];
+            $headers = ['Estudiante', 'Documento', 'Programa', 'Nivel', 'Estado', 'Costo Total (Rango)', 'Total Pagado (Rango)', 'Saldo Pendiente (Rango)', '% Pagado (Rango)'];
             foreach ($headers as $index => $header) {
                 $column = chr(65 + $index);
                 $sheet->setCellValue($column . '7', $header);
@@ -431,15 +473,15 @@ class Morosidad extends Component
             $row = 8;
             foreach ($this->morosos as $moroso) {
                 $matricula = $moroso['matricula'];
-                $estudiante = $matricula->student;
+                $estudiante = $matricula->estudiante; // Usando la relación correcta según la convención
 
                 $sheet->setCellValue('A' . $row, ($estudiante->nombres ?? '') . ' ' . ($estudiante->apellidos ?? ''));
                 $sheet->setCellValue('B' . $row, $estudiante->documento_identidad ?? 'N/A');
                 $sheet->setCellValue('C' . $row, $matricula->programa->nombre ?? 'N/A');
                 $sheet->setCellValue('D' . $row, $matricula->programa->nivelEducativo->nombre ?? 'N/A');
-                $sheet->setCellValue('E' . $row, $moroso['cantidad_cuotas']);
-                $sheet->setCellValue('F' . $row, $moroso['monto_vencido']);
-                $sheet->setCellValue('G' . $row, $moroso['monto_pagado_rango']);
+                $sheet->setCellValue('E' . $row, $moroso['estado']);
+                $sheet->setCellValue('F' . $row, $moroso['costo_rango']);
+                $sheet->setCellValue('G' . $row, $moroso['pagado_rango']);
                 $sheet->setCellValue('H' . $row, $moroso['saldo_pendiente_rango']);
                 $sheet->setCellValue('I' . $row, $moroso['porcentaje_pagado_rango'] / 100);
                 $row++;
@@ -493,8 +535,8 @@ class Morosidad extends Component
         }
 
         try {
-            $rangoFechas = ($this->fecha_desde ? \Carbon\Carbon::parse($this->fecha_desde)->format('d/m/Y') : 'Inicio') . 
-                          ' - ' . 
+            $rangoFechas = ($this->fecha_desde ? \Carbon\Carbon::parse($this->fecha_desde)->format('d/m/Y') : 'Inicio') .
+                          ' - ' .
                           ($this->fecha_hasta ? \Carbon\Carbon::parse($this->fecha_hasta)->format('d/m/Y') : 'Hoy');
 
             $data = [
@@ -506,7 +548,7 @@ class Morosidad extends Component
 
             $pdf = \PDF::loadView('admin.reportes.morosidad-pdf', $data);
             $filename = 'reporte_morosidad_' . now()->format('Y-m-d') . '.pdf';
-            
+
             session()->flash('success', 'Archivo PDF generado correctamente.');
             return $pdf->download($filename);
         } catch (\Exception $e) {
@@ -527,7 +569,7 @@ class Morosidad extends Component
         $errores = [];
 
         foreach ($this->morosos as $moroso) {
-            $estudiante = $moroso['matricula']->student;
+            $estudiante = $moroso['matricula']->estudiante; // Usando la relación correcta según la convención
 
             // Verificar si el estudiante es mayor de edad
             $esMayorDeEdad = $estudiante->fecha_nacimiento &&

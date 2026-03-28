@@ -157,15 +157,41 @@
                     <table class="table">
                         <thead>
                             <tr>
-                                <th>Estudiante</th>
+                                <th wire:click="sortBy('estudiante_id')" style="cursor: pointer;">
+                                    Estudiante
+                                    @if($sortBy === 'estudiante_id') 
+                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                    @endif
+                                </th>
                                 <th>Programa</th>
                                 <th>Nivel</th>
-                                <th class="text-end">Cuotas</th>
-                                <th class="text-end">Costo (Rango)</th>
-                                <th class="text-end">Pagado (Rango)</th>
-                                <th class="text-end">Saldo (Rango)</th>
-                                <th class="text-end">% Pagado (Rango)</th>
                                 <th>Estado</th>
+                                <th class="text-end">Cuotas</th>
+                                <th class="text-end" wire:click="sortBy('costo_rango')" style="cursor: pointer;">
+                                    Costo (Rango)
+                                    @if($sortBy === 'costo_rango') 
+                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                    @endif
+                                </th>
+                                <th class="text-end" wire:click="sortBy('pagado_rango')" style="cursor: pointer;">
+                                    Pagado (Rango)
+                                    @if($sortBy === 'pagado_rango') 
+                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                    @endif
+                                </th>
+                                <th class="text-end" wire:click="sortBy('saldo_pendiente_rango')" style="cursor: pointer;">
+                                    Pendiente (Rango)
+                                    @if($sortBy === 'saldo_pendiente_rango') 
+                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                    @endif
+                                </th>
+                                <th class="text-end" wire:click="sortBy('porcentaje_pagado_rango')" style="cursor: pointer;">
+                                    % Pagado (Rango)
+                                    @if($sortBy === 'porcentaje_pagado_rango') 
+                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                    @endif
+                                </th>
+                                <th>Riesgo</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -173,17 +199,18 @@
                             @foreach($morosos as $moroso)
                                 <tr>
                                     <td>
-                                        {{ $moroso['matricula']->student->nombres ?? '' }}
-                                        {{ $moroso['matricula']->student->apellidos ?? '' }}
+                                        {{ $moroso['matricula']->estudiante->nombres ?? '' }}
+                                        {{ $moroso['matricula']->estudiante->apellidos ?? '' }}
                                         <div class="small text-muted">
-                                            {{ $moroso['matricula']->student->documento_identidad ?? '' }}
+                                            {{ $moroso['matricula']->estudiante->documento_identidad ?? '' }}
                                         </div>
                                     </td>
                                     <td>{{ $moroso['matricula']->programa->nombre ?? '' }}</td>
                                     <td>{{ $moroso['matricula']->programa->nivelEducativo->nombre ?? '' }}</td>
+                                    <td>{{ $moroso['estado'] }}</td>
                                     <td class="text-end">{{ $moroso['cantidad_cuotas'] }}</td>
-                                    <td class="text-end"><x-dual-currency :amount="$moroso['monto_vencido']" /></td>
-                                    <td class="text-end"><x-dual-currency :amount="$moroso['monto_pagado_rango']" /></td>
+                                    <td class="text-end"><x-dual-currency :amount="$moroso['costo_rango']" /></td>
+                                    <td class="text-end"><x-dual-currency :amount="$moroso['pagado_rango']" /></td>
                                     <td class="text-end"><x-dual-currency :amount="$moroso['saldo_pendiente_rango']" /></td>
                                     <td class="text-end">{{ number_format($moroso['porcentaje_pagado_rango'], 2) }}%</td>
                                     <td>
@@ -238,8 +265,8 @@
                 @if($estudianteSeleccionado)
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <p><strong>Estudiante:</strong> {{ $estudianteSeleccionado->student->nombres ?? '' }} {{ $estudianteSeleccionado->student->apellidos ?? '' }}</p>
-                            <p><strong>Documento:</strong> {{ $estudianteSeleccionado->student->documento_identidad ?? '' }}</p>
+                            <p><strong>Estudiante:</strong> {{ $estudianteSeleccionado->estudiante->nombres ?? '' }} {{ $estudianteSeleccionado->estudiante->apellidos ?? '' }}</p>
+                            <p><strong>Documento:</strong> {{ $estudianteSeleccionado->estudiante->documento_identidad ?? '' }}</p>
                         </div>
                         <div class="col-md-6">
                             <p><strong>Programa:</strong> {{ $estudianteSeleccionado->programa->nombre ?? '' }}</p>
@@ -308,7 +335,13 @@
                                             <td class="text-end"><x-dual-currency :amount="$cuota->monto" /></td>
                                             <td class="text-end"><x-dual-currency :amount="$cuota->monto_pagado ?? 0" /></td>
                                             <td>
-                                                <span class="badge bg-danger">Pendiente</span>
+                                                @if($cuota->monto_pagado >= $cuota->monto)
+                                                    <span class="badge bg-success">Pagado</span>
+                                                @elseif($cuota->monto_pagado > 0)
+                                                    <span class="badge bg-warning">Parcial</span>
+                                                @else
+                                                    <span class="badge bg-danger">Pendiente</span>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach

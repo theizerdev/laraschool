@@ -192,9 +192,9 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th wire:click="sortBy('students.nombres')" style="cursor: pointer;">
+                        <th wire:click="sortBy('estudiante_id')" style="cursor: pointer;">
                             Estudiante
-                            @if($sortBy === 'students.nombres') 
+                            @if($sortBy === 'estudiante_id') 
                                 <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
                             @endif
                         </th>

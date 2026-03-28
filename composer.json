@@ -12,7 +12,7 @@
         "doctrine/dbal": "^4.3",
         "dompdf/dompdf": "^3.1",
         "endroid/qr-code": "^6.0",
-        "firebase/php-jwt": "^6.11",
+
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.6",
@@ -20,8 +20,7 @@
         "phpoffice/phpspreadsheet": "1.30",
         "pragmarx/google2fa-laravel": "^2.3",
         "spatie/laravel-activitylog": "^4.10",
-        "spatie/laravel-permission": "^6.21",
-        "tymon/jwt-auth": "^2.2"
+        "spatie/laravel-permission": "^6.21"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

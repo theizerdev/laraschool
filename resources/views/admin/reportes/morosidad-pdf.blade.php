@@ -37,23 +37,25 @@
                 <th>Documento</th>
                 <th>Programa</th>
                 <th>Nivel</th>
-                <th class="text-right">Costo Total</th>
-                <th class="text-right">Total Pagado</th>
-                <th class="text-right">Saldo Pendiente</th>
-                <th class="text-right">% Pagado</th>
+                <th>Estado</th>
+                <th class="text-right">Costo Total (Rango)</th>
+                <th class="text-right">Total Pagado (Rango)</th>
+                <th class="text-right">Saldo Pendiente (Rango)</th>
+                <th class="text-right">% Pagado (Rango)</th>
             </tr>
         </thead>
         <tbody>
             @foreach($morosos as $moroso)
                 <tr>
-                    <td>{{ $moroso['matricula']->student->nombres ?? '' }} {{ $moroso['matricula']->student->apellidos ?? '' }}</td>
-                    <td>{{ $moroso['matricula']->student->documento_identidad ?? 'N/A' }}</td>
+                    <td>{{ $moroso['matricula']->estudiante->nombres ?? '' }} {{ $moroso['matricula']->estudiante->apellidos ?? '' }}</td>
+                    <td>{{ $moroso['matricula']->estudiante->documento_identidad ?? 'N/A' }}</td>
                     <td>{{ $moroso['matricula']->programa->nombre ?? 'N/A' }}</td>
                     <td>{{ $moroso['matricula']->programa->nivelEducativo->nombre ?? 'N/A' }}</td>
-                    <td class="text-right">${{ number_format($moroso['matricula']->costo ?? 0, 2) }}</td>
-                    <td class="text-right">${{ number_format($moroso['total_pagado'], 2) }}</td>
-                    <td class="text-right">${{ number_format($moroso['saldo_pendiente'], 2) }}</td>
-                    <td class="text-right">{{ number_format($moroso['porcentaje_pagado'], 2) }}%</td>
+                    <td>{{ $moroso['estado'] }}</td>
+                    <td class="text-right">${{ number_format($moroso['costo_rango'], 2) }}</td>
+                    <td class="text-right">${{ number_format($moroso['pagado_rango'], 2) }}</td>
+                    <td class="text-right">${{ number_format($moroso['saldo_pendiente_rango'], 2) }}</td>
+                    <td class="text-right">{{ number_format($moroso['porcentaje_pagado_rango'], 2) }}%</td>
                 </tr>
             @endforeach
         </tbody>

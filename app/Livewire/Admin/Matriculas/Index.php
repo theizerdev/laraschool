@@ -117,6 +117,7 @@ class Index extends Component
     protected function getExportQuery()
     {
         return Matricula::with(['estudiante', 'programa', 'periodo'])
+            ->whereHas('estudiante')
             ->when($this->search, function ($query) {
                 $query->whereHas('estudiante', function ($subQuery) {
                     $subQuery->where('nombres', 'like', '%' . $this->search . '%')
@@ -173,6 +174,7 @@ class Index extends Component
     {
         // Obtener solo la matrícula más reciente de cada estudiante
         $matriculas = Matricula::with(['estudiante', 'programa', 'periodo', 'paymentSchedules'])
+            ->whereHas('estudiante')
             ->when($this->search, function ($query) {
                 $query->whereHas('estudiante', function ($subQuery) {
                     $subQuery->where('nombres', 'like', '%' . $this->search . '%')
@@ -191,12 +193,16 @@ class Index extends Component
             ->orderBy($this->sortBy, $this->sortDirection)
             ->paginate($this->perPage);
 
+        // Verificación explícita de eager loading: asegurar que los estudiantes estén cargados
+        $matriculas->loadMissing(['estudiante']);
+
         // Estadísticas - contar solo matrículas únicas por estudiante
-        $matriculasUnicas = Matricula::whereIn('id', function($subquery) {
-            $subquery->selectRaw('MAX(id)')
-                ->from('matriculas')
-                ->groupBy('estudiante_id');
-        });
+        $matriculasUnicas = Matricula::whereHas('estudiante')
+            ->whereIn('id', function($subquery) {
+                $subquery->selectRaw('MAX(id)')
+                    ->from('matriculas')
+                    ->groupBy('estudiante_id');
+            });
         
         $totalMatriculas = (clone $matriculasUnicas)->count();
         $matriculasActivas = (clone $matriculasUnicas)->where('estado', 'activo')->count();
