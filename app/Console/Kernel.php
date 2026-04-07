@@ -26,6 +26,10 @@ class Kernel extends ConsoleKernel
         Commands\CheckWhatsAppCompanyConfiguration::class, // Comando para verificar configuración de empresas WhatsApp
         Commands\ConfigureWhatsAppCompany::class, // Comando para configurar empresa específica para WhatsApp
         Commands\MigrateAllEmpresasToId2::class, // Comando para migrar todos los datos de empresa_id 1 a 2
+        Commands\RecalcularMorosidadCommand::class, // Comando para recalcular morosidad
+        Commands\VerificarCuotasMatriculaCommand::class, // Comando para verificar cuotas de matrícula
+        Commands\RecalcularSolvenciaCommand::class, // Comando para recalcular solvencia
+        Commands\VerificarInconsistenciasSolvenciaCommand::class, // Comando para verificar inconsistencias de solvencia
     ];
 
     /**
@@ -38,12 +42,12 @@ class Kernel extends ConsoleKernel
     {
         $schedule->command('notifications:send-automatic')->dailyAt('08:00');
         $schedule->command('reports:send-account-reminders')->dailyAt('08:10');
-        
+
         // Obtener tasas de cambio del BCV dos veces al día
         $schedule->command('exchange:fetch')
             ->dailyAt('10:00')
             ->timezone('America/Caracas');
-            
+
         $schedule->command('exchange:fetch')
             ->dailyAt('14:00')
             ->timezone('America/Caracas');

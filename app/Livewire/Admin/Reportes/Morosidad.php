@@ -96,10 +96,14 @@ class Morosidad extends Component
         $matriculas = $query->get();
 
         // Calcular morosidad para cada matrícula usando el servicio optimizado
+        // Si no hay fecha_desde especificada, usar null para incluir todas las cuotas
+        $fechaDesde = $this->fecha_desde ?: null;
+        $fechaHasta = $this->fecha_hasta ?: null;
+
         $morososData = $this->morosidadCalculationService->calculateMorosidadData(
             $matriculas,
-            $this->fecha_desde,
-            $this->fecha_hasta
+            $fechaDesde,
+            $fechaHasta
         );
 
         // Aplicar ordenamiento

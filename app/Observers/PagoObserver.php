@@ -32,7 +32,7 @@ class PagoObserver
                 $this->syncPaymentSchedules($pago);
             }
         }
-        
+
         // Si se actualizan los detalles del pago
         if ($pago->isDirty('detalles')) {
             $this->syncPaymentSchedules($pago);
@@ -88,6 +88,9 @@ class PagoObserver
         $matricula = $pago->matricula;
         if($matricula) {
             $matricula->updateSolvencia();
+
+            // Recalcular la morosidad para mantener sincronizada la información
+            $matricula->updateMorosidad();
         }
     }
 }

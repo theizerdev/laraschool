@@ -147,7 +147,6 @@ class Create extends Component
     {
         if (strlen($value) >= 2) {
             $query = Matricula::with(['student', 'programa'])
-             ->where('solvente', 0)
                 ->whereHas('student', function($q) use ($value) {
                     $q->where('nombres', 'like', '%' . $value . '%')
                       ->orWhere('apellidos', 'like', '%' . $value . '%')
@@ -158,7 +157,7 @@ class Create extends Component
                     $q->where('nombre', 'like', '%' . $value . '%');
                 })
                 ->whereHas('paymentSchedules', function($q) {
-                    $q->where('estado', 'pendiente');
+                    $q->whereIn('estado', ['pendiente', 'vencido']);
                 });
 
             if (auth()->check() && !auth()->user()->hasRole('Super Administrador')) {
@@ -244,7 +243,7 @@ class Create extends Component
         if ($value) {
             if (class_exists('\App\Models\PaymentSchedule')) {
                 $this->cuotasPendientes = PaymentSchedule::where('matricula_id', $value)
-                    ->where('estado', 'pendiente')
+                    ->whereIn('estado', ['pendiente', 'vencido'])
                     ->orderBy('numero_cuota')
                     ->get();
             }
@@ -651,14 +650,14 @@ class Create extends Component
             // Intentar extraer número de cuota de la descripción
           if(preg_match('/Cuota\s+#?(\d+)/i', $descripcion, $matches)) {
                 $numeroCuota = (int)$matches[1];
-                
+
               if(isset($schedules[$numeroCuota])) {
                     $schedule = $schedules[$numeroCuota];
-                    
+
                     // Verificar si el monto coincide (con tolerancia de 0.01)
-                  if(abs($monto - $schedule->monto) < 0.01 || 
+                  if(abs($monto - $schedule->monto) < 0.01 ||
                        abs($monto- $schedule->saldo_pendiente) < 0.01) {
-                        
+
                         // Asignar payment_schedule_id
                        $detalle['payment_schedule_id'] = $schedule->id;
                     }
@@ -681,7 +680,7 @@ class Create extends Component
             $this->validarReferenciaMixto($value, $key);
         }
     }
-    
+
     public function updated($property, $value)
     {
         if ($property === 'fecha_pago' || $property === 'fecha') {
