@@ -92,6 +92,14 @@ class Student extends Model
     }
 
     /**
+     * Get the student's academic records.
+     */
+    public function academicRecords()
+    {
+        return $this->hasMany(AcademicRecord::class, 'student_id');
+    }
+
+    /**
      * Get the student's age in years.
      */
     public function getEdadAttribute()
@@ -168,12 +176,12 @@ class Student extends Model
         if (!$this->esMenorDeEdad && !empty($this->telefono)) {
             return $this->telefono;
         }
-        
+
         // Si es menor de edad o no tiene teléfono propio, usar el del representante
         if (!empty($this->representante_telefonos) && is_array($this->representante_telefonos)) {
             return $this->representante_telefonos[0] ?? null;
         }
-        
+
         return null;
     }
 
@@ -185,17 +193,17 @@ class Student extends Model
     public function getTelefonosParaNotificacionAttribute()
     {
         $telefonos = [];
-        
+
         // Si es mayor de edad y tiene teléfono propio
         if (!$this->esMenorDeEdad && !empty($this->telefono)) {
             $telefonos[] = $this->telefono;
         }
-        
+
         // Si es menor de edad o no tiene teléfono propio, usar los del representante
         if($this->esMenorDeEdad && !empty($this->representante_telefonos) && is_array($this->representante_telefonos)) {
             $telefonos = array_merge($telefonos, $this->representante_telefonos);
         }
-        
+
         return array_filter($telefonos); // Eliminar valores vacíos
     }
 

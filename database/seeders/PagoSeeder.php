@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Pago;
+use App\Models\PagoDetalle;
 use App\Models\Matricula;
 use App\Models\ConceptoPago;
 use Illuminate\Database\Seeder;
@@ -16,68 +17,87 @@ class PagoSeeder extends Seeder
      */
     public function run(): void
     {
-        // Delete all records from the pagos table to avoid duplicates
+        // Delete all records from the tables to avoid duplicates
+        DB::table('pago_detalles')->delete();
         DB::table('pagos')->delete();
-        
+
         // Get required data
         $matriculas = Matricula::all();
         $conceptos = ConceptoPago::all();
-        
+
         if ($matriculas->isEmpty() || $conceptos->isEmpty()) {
             $this->command->warn('No hay suficientes datos para crear pagos. Verifica que existan matrículas y conceptos de pago.');
             return;
         }
-        
+
         // Get specific concepts
         $conceptoMatricula = $conceptos->where('nombre', 'Matrícula')->first();
         $conceptoCuotaInicial = $conceptos->where('nombre', 'Cuota Inicial')->first();
         $conceptoMensualidad = $conceptos->where('nombre', 'Mensualidad')->first();
-        
+
         // Create payments for each matricula
         foreach ($matriculas as $matricula) {
-            // Create matricula payment
+            // Create a single payment for the matricula
+            $pago = Pago::create([
+                'matricula_id' => $matricula->id,
+                'fecha_pago' => $matricula->fecha_matricula,
+                'monto' => 0, // The total amount will be calculated from the details
+                'metodo_pago' => 'efectivo',
+                'referencia' => 'PAGO-' . strtoupper(uniqid()),
+                'estado' => 'pagado', // Initial state
+            ]);
+
+            $totalMonto = 0;
+
+            // Create matricula payment detail
             if ($conceptoMatricula) {
-                Pago::create([
-                    'matricula_id' => $matricula->id,
+                $montoMatricula = 50.00;
+                PagoDetalle::create([
+                    'pago_id' => $pago->id,
                     'concepto_pago_id' => $conceptoMatricula->id,
-                    'fecha_pago' => $matricula->fecha_matricula,
-                    'monto' => 50.00, // Fixed amount for matricula
-                    'metodo_pago' => 'efectivo',
-                    'referencia' => 'MAT-' . strtoupper(uniqid()),
-                    'estado' => 'pagado',
+                    'descripcion' => 'Pago de Matrícula',
+                    'cantidad' => 1,
+                    'precio_unitario' => $montoMatricula,
+                    'subtotal' => $montoMatricula,
                 ]);
+                $totalMonto += $montoMatricula;
             }
-            
-            // Create initial fee payment
+
+            // Create initial fee payment detail
             if ($conceptoCuotaInicial) {
-                Pago::create([
-                    'matricula_id' => $matricula->id,
+                $montoCuotaInicial = $matricula->cuota_inicial;
+                PagoDetalle::create([
+                    'pago_id' => $pago->id,
                     'concepto_pago_id' => $conceptoCuotaInicial->id,
-                    'fecha_pago' => $matricula->fecha_matricula->addDays(rand(1, 5)),
-                    'monto' => $matricula->cuota_inicial,
-                    'metodo_pago' => 'efectivo',
-                    'referencia' => 'CI-' . strtoupper(uniqid()),
-                    'estado' => 'pagado',
+                    'descripcion' => 'Pago de Cuota Inicial',
+                    'cantidad' => 1,
+                    'precio_unitario' => $montoCuotaInicial,
+                    'subtotal' => $montoCuotaInicial,
                 ]);
+                $totalMonto += $montoCuotaInicial;
             }
-            
+
             // Create monthly payments (3 random payments)
             if ($conceptoMensualidad) {
+                $montoMensualidad = $this->calculateMonthlyFee($matricula);
                 for ($i = 1; $i <= 3; $i++) {
-                    Pago::create([
-                        'matricula_id' => $matricula->id,
+                    PagoDetalle::create([
+                        'pago_id' => $pago->id,
                         'concepto_pago_id' => $conceptoMensualidad->id,
-                        'fecha_pago' => $matricula->fecha_matricula->addMonths($i),
-                        'monto' => $this->calculateMonthlyFee($matricula),
-                        'metodo_pago' => 'efectivo',
-                        'referencia' => 'MEN-' . strtoupper(uniqid()),
-                        'estado' => rand(0, 1) ? 'pagado' : 'pendiente',
+                        'descripcion' => "Pago de Mensualidad #{$i}",
+                        'cantidad' => 1,
+                        'precio_unitario' => $montoMensualidad,
+                        'subtotal' => $montoMensualidad,
                     ]);
+                    $totalMonto += $montoMensualidad;
                 }
             }
+
+            // Update the total amount of the payment
+            $pago->update(['monto' => $totalMonto]);
         }
     }
-    
+
     /**
      * Calculate the monthly fee
      */
@@ -88,7 +108,7 @@ class PagoSeeder extends Seeder
         if ($matricula->numero_cuotas > 0) {
             return round(($matricula->costo - $matricula->cuota_inicial) / $matricula->numero_cuotas, 2);
         }
-        
+
         return 0;
     }
 }

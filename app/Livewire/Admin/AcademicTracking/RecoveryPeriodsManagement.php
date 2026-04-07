@@ -10,12 +10,14 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use App\Traits\HasDynamicLayout;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
-#[Layout('layouts.app')]
 #[Title('Gestión de Períodos de Recuperación')]
 class RecoveryPeriodsManagement extends Component
 {
-    use WithPagination;
+    use WithPagination, HasDynamicLayout;
 
     public $name;
     public $description;
@@ -31,6 +33,7 @@ class RecoveryPeriodsManagement extends Component
     public $recoveryPeriodId;
     public $showForm = false;
     public $showStudents = false;
+    public $isEditing = false;
     public $search = '';
     public $selectedStatus = '';
 
@@ -66,7 +69,6 @@ class RecoveryPeriodsManagement extends Component
     public function getBaseQuery()
     {
         return RecoveryPeriod::with(['schoolPeriod', 'createdBy', 'approvedBy'])
-            ->tenant()
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('name', 'like', '%' . $this->search . '%')
@@ -109,13 +111,43 @@ class RecoveryPeriodsManagement extends Component
 
     public function getSchoolPeriodsProperty()
     {
-        return SchoolPeriod::tenant()->orderBy('nombre', 'desc')->get();
+        return SchoolPeriod::orderBy('name', 'desc')->get();
+    }
+
+    public function getTotalPeriodsProperty()
+    {
+        return $this->getBaseQuery()->count();
+    }
+
+    public function getActivePeriodsProperty()
+    {
+        return $this->getBaseQuery()->where('is_active', true)->count();
+    }
+
+    public function getCurrentPeriodsProperty()
+    {
+        return $this->getBaseQuery()->current()->count();
+    }
+
+    public function getOpenEnrollmentPeriodsProperty()
+    {
+        return $this->getBaseQuery()->registrationOpen()->count();
+    }
+
+    public function getApprovedPeriodsProperty()
+    {
+        return $this->getBaseQuery()->approved()->count();
+    }
+
+    public function getPendingPeriodsProperty()
+    {
+        return $this->getBaseQuery()->whereNull('approved_at')->count();
     }
 
     public function getStatsProperty()
     {
-        $baseQuery = RecoveryPeriod::tenant();
-        
+        $baseQuery = RecoveryPeriod::query();
+
         return [
             'total' => $baseQuery->count(),
             'active' => (clone $baseQuery)->where('is_active', true)->count(),
@@ -135,7 +167,7 @@ class RecoveryPeriodsManagement extends Component
     public function edit($id)
     {
         $recoveryPeriod = RecoveryPeriod::findOrFail($id);
-        
+
         $this->recoveryPeriodId = $id;
         $this->name = $recoveryPeriod->name;
         $this->description = $recoveryPeriod->description;
@@ -148,7 +180,8 @@ class RecoveryPeriodsManagement extends Component
         $this->maxFailingGrade = $recoveryPeriod->max_failing_grade;
         $this->minRecoveryGrade = $recoveryPeriod->min_recovery_grade;
         $this->isActive = $recoveryPeriod->is_active;
-        
+
+        $this->isEditing = true;
         $this->showForm = true;
     }
 
@@ -184,16 +217,21 @@ class RecoveryPeriodsManagement extends Component
         $this->showForm = false;
     }
 
+    public function closeModal()
+    {
+        $this->resetInputFields();
+    }
+
     public function approve($id)
     {
         $recoveryPeriod = RecoveryPeriod::findOrFail($id);
-        
+
         if (!$recoveryPeriod->approved_at) {
             $recoveryPeriod->update([
                 'approved_by' => auth()->id(),
                 'approved_at' => now(),
             ]);
-            
+
             $this->dispatch('success', 'Período de recuperación aprobado exitosamente');
         }
     }
@@ -201,12 +239,31 @@ class RecoveryPeriodsManagement extends Component
     public function deactivate($id)
     {
         $recoveryPeriod = RecoveryPeriod::findOrFail($id);
-        
+
         $recoveryPeriod->update([
             'is_active' => false,
         ]);
-        
+
         $this->dispatch('success', 'Período de recuperación desactivado exitosamente');
+    }
+
+    public function toggleStatus($id)
+    {
+        $recoveryPeriod = RecoveryPeriod::findOrFail($id);
+        $recoveryPeriod->update([
+            'is_active' => !$recoveryPeriod->is_active,
+        ]);
+
+        $status = $recoveryPeriod->is_active ? 'activado' : 'desactivado';
+        $this->dispatch('success', "Período de recuperación {$status} exitosamente");
+    }
+
+    public function printPeriodReport($id)
+    {
+        $recoveryPeriod = RecoveryPeriod::findOrFail($id);
+        $fileName = 'Reporte-Recuperacion-' . Str::slug($recoveryPeriod->name) . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\RecoveryPeriodReportExport($recoveryPeriod), $fileName);
     }
 
     public function viewStudents($id)
@@ -215,13 +272,24 @@ class RecoveryPeriodsManagement extends Component
         $this->showStudents = true;
     }
 
+    public function closeStudentsModal()
+    {
+        $this->showStudents = false;
+        $this->reset('recoveryPeriodId');
+    }
+
+    public function getCurrentPeriodProperty()
+    {
+        return $this->recoveryPeriodId ? RecoveryPeriod::find($this->recoveryPeriodId) : null;
+    }
+
     public function getStudentsInRecoveryProperty()
     {
         if (!$this->recoveryPeriodId) {
             return collect();
         }
 
-        return AcademicRecord::with(['student', 'subject'])
+        return \App\Models\RecoveryEnrollment::with(['student', 'subject'])
             ->where('recovery_period_id', $this->recoveryPeriodId)
             ->when($this->search, function ($query) {
                 $query->whereHas('student', function ($q) {
@@ -249,6 +317,7 @@ class RecoveryPeriodsManagement extends Component
         $this->isActive = true;
         $this->showForm = false;
         $this->showStudents = false;
+        $this->isEditing = false;
     }
 
     public function render()
@@ -258,6 +327,6 @@ class RecoveryPeriodsManagement extends Component
             'schoolPeriods' => $this->schoolPeriods,
             'stats' => $this->stats,
             'studentsInRecovery' => $this->showStudents ? $this->studentsInRecovery : collect(),
-        ]);
+        ])->layout($this->getLayout());
     }
 }

@@ -36,7 +36,7 @@ class Create extends Component
 
     public function save()
     {
-        if (!auth()->user()->can('create evaluation_types')) {
+        if (!auth()->user()->can('create evaluation types')) {
             session()->flash('error', 'No tienes permiso para crear tipos de evaluación.');
             return;
         }

@@ -42,7 +42,7 @@ class Edit extends Component
 
     public function save()
     {
-        if (!auth()->user()->can('edit evaluation_types')) {
+        if (!auth()->user()->can('edit evaluation types')) {
             session()->flash('error', 'No tienes permiso para editar tipos de evaluación.');
             return;
         }

@@ -55,7 +55,7 @@ class Edit extends Component
 
     public function save()
     {
-        if (!auth()->user()->can('edit evaluation_periods')) {
+        if (!auth()->user()->can('edit evaluation periods')) {
             session()->flash('error', 'No tienes permiso para editar lapsos.');
             return;
         }

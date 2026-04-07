@@ -21,10 +21,12 @@ return new class extends Migration
             $table->integer('years_experience')->default(0);
             $table->date('hire_date')->nullable();
             $table->boolean('is_active')->default(true);
+            $table->foreignId('empresa_id')->constrained('empresas')->default(1);
+            $table->foreignId('sucursal_id')->constrained('sucursales')->default(1);
             $table->foreignId('created_by')->nullable()->constrained('users');
             $table->foreignId('updated_by')->nullable()->constrained('users');
             $table->timestamps();
-            
+
             $table->index('user_id');
             $table->index('employee_code');
             $table->index('is_active');

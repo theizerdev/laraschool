@@ -12,6 +12,7 @@ use App\Models\ConceptoPago;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\MorosidadCalculationService;
 
 class EstadoCuentas extends Component
 {
@@ -26,6 +27,14 @@ class EstadoCuentas extends Component
     public $pagos = [];
     public $totalPagado = 0;
     public $saldoPendiente = 0;
+    public $detalleCuotas = [];
+
+    protected $morosidadCalculationService;
+
+    public function boot(MorosidadCalculationService $morosidadCalculationService)
+    {
+        $this->morosidadCalculationService = $morosidadCalculationService;
+    }
 
     public function mount()
     {
@@ -46,8 +55,10 @@ class EstadoCuentas extends Component
 
     public function updatedMatriculaId()
     {
-        $this->matriculaSeleccionada = Matricula::with('programa.nivelEducativo')
-            ->find($this->matricula_id);
+        $this->matriculaSeleccionada = Matricula::with([
+            'programa.nivelEducativo',
+            'cronogramaPagos'
+        ])->find($this->matricula_id);
 
         $this->cargarEstadoCuenta();
     }
@@ -58,17 +69,46 @@ class EstadoCuentas extends Component
             return;
         }
 
+        // Obtener la matrícula con el cronograma de pagos
+        $matricula = Matricula::with([
+            'estudiante',
+            'programa.nivelEducativo',
+            'cronogramaPagos',
+            'pagos.detalles.conceptoPago'
+        ])->find($this->matricula_id);
+
+        // Obtener los datos de morosidad para esta matrícula
+        $morosidadData = $this->morosidadCalculationService->calculateMorosidadData(collect([$matricula]));
+        
+        if (!empty($morosidadData)) {
+            $data = $morosidadData[0];
+            $this->totalPagado = $data['pagado_rango'];
+            $this->saldoPendiente = $data['saldo_pendiente_rango'];
+            
+            // Preparar detalle de cuotas para mostrar
+            $this->detalleCuotas = $matricula->cronogramaPagos
+                ->sortBy('numero_cuota')
+                ->map(function ($cuota) {
+                    return [
+                        'numero_cuota' => $cuota->numero_cuota,
+                        'monto' => $cuota->monto,
+                        'monto_pagado' => $cuota->monto_pagado,
+                        'saldo_pendiente' => $cuota->saldo_pendiente,
+                        'fecha_vencimiento' => $cuota->fecha_vencimiento instanceof \Carbon\Carbon ? $cuota->fecha_vencimiento->format('d/m/Y') : $cuota->fecha_vencimiento,
+                        'estado' => $cuota->estado,
+                        'fecha_pago' => $cuota->fecha_pago ? (
+                            $cuota->fecha_pago instanceof \Carbon\Carbon ? 
+                            $cuota->fecha_pago->format('d/m/Y') : 
+                            $cuota->fecha_pago
+                        ) : null
+                    ];
+                });
+        }
+
         // Obtener todos los pagos de esta matrícula
         $this->pagos = Pago::with(['detalles.conceptoPago'])
             ->where('matricula_id', $this->matricula_id)
             ->get();
-
-        // Calcular totales
-        $this->totalPagado = $this->pagos->where('estado', 'aprobado')->sum('total');
-
-        // Calcular saldo pendiente
-        $costoTotal = $this->matriculaSeleccionada->costo ?? 0;
-        $this->saldoPendiente = max(0, $costoTotal - $this->totalPagado);
     }
 
     public function exportarExcel()
@@ -145,42 +185,40 @@ class EstadoCuentas extends Component
             $sheet->getStyle('F9')->getFill()->setFillType('solid')->getStartColor()->setRGB('C6EFCE');
         }
 
-        // Detalle de pagos
-        $sheet->setCellValue('A11', 'DETALLE DE PAGOS');
+        // Detalle de cuotas
+        $sheet->setCellValue('A11', 'DETALLE DE CUOTAS');
         $sheet->mergeCells('A11:F11');
         $sheet->getStyle('A11')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('FFFFFF');
-        $sheet->getStyle('A11')->getFill()->setFillType('solid')->getStartColor()->setRGB('C55A5A');
+        $sheet->getStyle('A11')->getFill()->setFillType('solid')->getStartColor()->setRGB('5B9BD5');
         $sheet->getStyle('A11')->getAlignment()->setHorizontal('center');
 
-        // Encabezados de tabla
-        $headers = ['Fecha', 'Documento', 'Concepto', 'Método Pago', 'Monto', 'Estado'];
+        // Encabezados de tabla de cuotas
+        $headers = ['N° Cuota', 'Monto', 'Pagado', 'Pendiente', 'Vence', 'Estado'];
         $col = 'A';
         foreach ($headers as $header) {
             $sheet->setCellValue($col . '12', $header);
             $col++;
         }
 
-        // Estilo de encabezados
+        // Estilo de encabezados de cuotas
         $sheet->getStyle('A12:F12')->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
-        $sheet->getStyle('A12:F12')->getFill()->setFillType('solid')->getStartColor()->setRGB('5B9BD5');
+        $sheet->getStyle('A12:F12')->getFill()->setFillType('solid')->getStartColor()->setRGB('4472C4');
         $sheet->getStyle('A12:F12')->getAlignment()->setHorizontal('center');
 
-        // Datos de pagos
+        // Datos de cuotas
         $row = 13;
-        foreach ($this->pagos as $pago) {
-            $conceptos = $pago->detalles->pluck('conceptoPago.nombre')->filter()->implode(', ');
-
-            $sheet->setCellValue('A' . $row, $pago->fecha->format('d/m/Y'));
-            $sheet->setCellValue('B' . $row, $pago->numero_completo ?? 'N/A');
-            $sheet->setCellValue('C' . $row, $conceptos ?: 'N/A');
-            $sheet->setCellValue('D' . $row, ucfirst($pago->metodo_pago ?? 'N/A'));
-            $sheet->setCellValue('E' . $row, $pago->total);
-            $sheet->setCellValue('F' . $row, ucfirst($pago->estado));
+        foreach ($this->detalleCuotas as $cuota) {
+            $sheet->setCellValue('A' . $row, $cuota['numero_cuota']);
+            $sheet->setCellValue('B' . $row, $cuota['monto']);
+            $sheet->setCellValue('C' . $row, $cuota['monto_pagado']);
+            $sheet->setCellValue('D' . $row, $cuota['saldo_pendiente']);
+            $sheet->setCellValue('E' . $row, $cuota['fecha_vencimiento']);
+            $sheet->setCellValue('F' . $row, ucfirst($cuota['estado']));
 
             // Color condicional por estado
-            if ($pago->estado === 'aprobado') {
+            if ($cuota['estado'] === 'pagado') {
                 $sheet->getStyle('F' . $row)->getFill()->setFillType('solid')->getStartColor()->setRGB('C6EFCE');
-            } elseif ($pago->estado === 'pendiente') {
+            } elseif ($cuota['estado'] === 'pendiente') {
                 $sheet->getStyle('F' . $row)->getFill()->setFillType('solid')->getStartColor()->setRGB('FFE699');
             } else {
                 $sheet->getStyle('F' . $row)->getFill()->setFillType('solid')->getStartColor()->setRGB('FFC7CE');
@@ -189,21 +227,72 @@ class EstadoCuentas extends Component
             $row++;
         }
 
-        // Formato de moneda para columna de montos
+        // Formato de moneda para columnas de montos
         if ($row > 13) {
-            $sheet->getStyle('E13:E' . ($row - 1))->getNumberFormat()->setFormatCode('$#,##0.00');
+            $sheet->getStyle('B13:D' . ($row - 1))->getNumberFormat()->setFormatCode('$#,##0.00');
+        }
+
+        // Detalle de pagos
+        $startRow = $row + 1;
+        $sheet->setCellValue('A' . $startRow, 'DETALLE DE PAGOS');
+        $sheet->mergeCells('A' . $startRow . ':F' . $startRow);
+        $sheet->getStyle('A' . $startRow)->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle('A' . $startRow)->getFill()->setFillType('solid')->getStartColor()->setRGB('C55A5A');
+        $sheet->getStyle('A' . $startRow)->getAlignment()->setHorizontal('center');
+
+        // Encabezados de tabla de pagos
+        $headers = ['Fecha', 'Documento', 'Concepto', 'Método Pago', 'Monto', 'Estado'];
+        $col = 'A';
+        $startRow++;
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . $startRow, $header);
+            $col++;
+        }
+
+        // Estilo de encabezados de pagos
+        $sheet->getStyle($startRow)->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle($startRow)->getFill()->setFillType('solid')->getStartColor()->setRGB('C55A5A');
+        $sheet->getStyle($startRow)->getAlignment()->setHorizontal('center');
+
+        // Datos de pagos
+        $startRow++;
+        foreach ($this->pagos as $pago) {
+            $conceptos = $pago->detalles->pluck('conceptoPago.nombre')->filter()->implode(', ');
+
+            $sheet->setCellValue('A' . $startRow, $pago->fecha->format('d/m/Y'));
+            $sheet->setCellValue('B' . $startRow, $pago->numero_completo ?? 'N/A');
+            $sheet->setCellValue('C' . $startRow, $conceptos ?: 'N/A');
+            $sheet->setCellValue('D' . $startRow, ucfirst($pago->metodo_pago ?? 'N/A'));
+            $sheet->setCellValue('E' . $startRow, $pago->total);
+            $sheet->setCellValue('F' . $startRow, ucfirst($pago->estado));
+
+            // Color condicional por estado
+            if ($pago->estado === 'aprobado') {
+                $sheet->getStyle('F' . $startRow)->getFill()->setFillType('solid')->getStartColor()->setRGB('C6EFCE');
+            } elseif ($pago->estado === 'pendiente') {
+                $sheet->getStyle('F' . $startRow)->getFill()->setFillType('solid')->getStartColor()->setRGB('FFE699');
+            } else {
+                $sheet->getStyle('F' . $startRow)->getFill()->setFillType('solid')->getStartColor()->setRGB('FFC7CE');
+            }
+
+            $startRow++;
+        }
+
+        // Formato de moneda para columna de montos de pagos
+        if ($startRow > ($row + 3)) {
+            $sheet->getStyle('E' . ($row + 3) . ':E' . ($startRow - 1))->getNumberFormat()->setFormatCode('$#,##0.00');
         }
 
         // Totales finales
-        $row += 1;
-        $sheet->setCellValue('D' . $row, 'TOTAL PAGADO:');
-        $sheet->setCellValue('E' . $row, $this->totalPagado);
-        $sheet->getStyle('D' . $row . ':E' . $row)->getFont()->setBold(true);
-        $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('$#,##0.00');
-        $sheet->getStyle('D' . $row . ':E' . $row)->getFill()->setFillType('solid')->getStartColor()->setRGB('D9E2F3');
+        $startRow += 1;
+        $sheet->setCellValue('D' . $startRow, 'TOTAL PAGADO:');
+        $sheet->setCellValue('E' . $startRow, $this->totalPagado);
+        $sheet->getStyle('D' . $startRow . ':E' . $startRow)->getFont()->setBold(true);
+        $sheet->getStyle('E' . $startRow)->getNumberFormat()->setFormatCode('$#,##0.00');
+        $sheet->getStyle('D' . $startRow . ':E' . $startRow)->getFill()->setFillType('solid')->getStartColor()->setRGB('D9E2F3');
 
         // Bordes para toda la tabla
-        $sheet->getStyle('A12:F' . $row)->getBorders()->getAllBorders()->setBorderStyle('thin');
+        $sheet->getStyle('A12:F' . $startRow)->getBorders()->getAllBorders()->setBorderStyle('thin');
 
         // Ajustar ancho de columnas
         $sheet->getColumnDimension('A')->setWidth(12);
@@ -214,7 +303,7 @@ class EstadoCuentas extends Component
         $sheet->getColumnDimension('F')->setWidth(12);
 
         // Pie de página
-        $footerRow = $row + 3;
+        $footerRow = $startRow + 3;
         $sheet->setCellValue('A' . $footerRow, 'Este documento es un estado de cuenta oficial generado automáticamente.');
         $sheet->mergeCells('A' . $footerRow . ':F' . $footerRow);
         $sheet->getStyle('A' . $footerRow)->getAlignment()->setHorizontal('center');

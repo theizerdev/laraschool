@@ -86,7 +86,9 @@ class ResumenPagos extends Component
             }
 
             \Log::debug('Obteniendo pagos');
-            $this->pagos = Pago::with(['matricula.student', 'detalles.conceptoPago'])
+            $this->pagos = Pago::with(['matricula' => function($query) {
+                    $query->with(['student', 'programa']);
+                }])
                 ->whereBetween('fecha', [$this->fecha_inicio, $this->fecha_fin])
                 ->where('estado', 'aprobado')
                 ->get();
@@ -232,13 +234,13 @@ class ResumenPagos extends Component
             ]);
 
             // Encabezados detalle
-            $detailHeaders = ['Fecha', 'Estudiante', 'Documento', 'Concepto', 'Monto', 'Método', 'Estado'];
+            $detailHeaders = ['Fecha', 'Estudiante', 'Documento', 'Programa', 'Concepto', 'Monto', 'Método', 'Estado'];
             foreach ($detailHeaders as $index => $header) {
                 $column = chr(65 + $index);
                 $sheet->setCellValue($column . ($startDetailRow + 1), $header);
             }
 
-            $sheet->getStyle('A' . ($startDetailRow + 1) . ':G' . ($startDetailRow + 1))->applyFromArray([
+            $sheet->getStyle('A' . ($startDetailRow + 1) . ':H' . ($startDetailRow + 1))->applyFromArray([
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                 'fill' => ['fillType' => Fill::FILL_SOLID, 'color' => ['rgb' => '495057']],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -254,26 +256,28 @@ class ResumenPagos extends Component
                 $sheet->setCellValue('A' . $detailRow, $pago->fecha->format('d/m/Y'));
                 $sheet->setCellValue('B' . $detailRow, trim($estudiante) ?: 'N/A');
                 $sheet->setCellValue('C' . $detailRow, $pago->matricula?->student?->documento_identidad ?? 'N/A');
-                $sheet->setCellValue('D' . $detailRow, $conceptos ?: 'N/A');
-                $sheet->setCellValue('E' . $detailRow, $pago->total);
-                $sheet->setCellValue('F' . $detailRow, ucfirst($pago->metodo_pago ?? 'N/A'));
-                $sheet->setCellValue('G' . $detailRow, ucfirst($pago->estado ?? 'N/A'));
+                $sheet->setCellValue('D' . $detailRow, $pago->matricula?->programa?->nombre ?? 'N/A');
+                $sheet->setCellValue('E' . $detailRow, $conceptos ?: 'N/A');
+                $sheet->setCellValue('F' . $detailRow, $pago->total);
+                $sheet->setCellValue('G' . $detailRow, ucfirst($pago->metodo_pago ?? 'N/A'));
+                $sheet->setCellValue('H' . $detailRow, ucfirst($pago->estado ?? 'N/A'));
                 $detailRow++;
             }
 
             // Formato del detalle
-            $rangeDetail = 'A' . ($startDetailRow + 2) . ':G' . ($detailRow - 1);
+            $rangeDetail = 'A' . ($startDetailRow + 2) . ':H' . ($detailRow - 1);
             $sheet->getStyle($rangeDetail)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-            $sheet->getStyle('E' . ($startDetailRow + 2) . ':E' . ($detailRow - 1))->getNumberFormat()->setFormatCode('$#,##0.00');
+            $sheet->getStyle('F' . ($startDetailRow + 2) . ':F' . ($detailRow - 1))->getNumberFormat()->setFormatCode('$#,##0.00');
 
             // === CONFIGURACIÓN DE COLUMNAS ===
             $sheet->getColumnDimension('A')->setWidth(12);
             $sheet->getColumnDimension('B')->setWidth(35);
             $sheet->getColumnDimension('C')->setWidth(15);
-            $sheet->getColumnDimension('D')->setWidth(30);
-            $sheet->getColumnDimension('E')->setWidth(15);
+            $sheet->getColumnDimension('D')->setWidth(25);
+            $sheet->getColumnDimension('E')->setWidth(30);
             $sheet->getColumnDimension('F')->setWidth(15);
-            $sheet->getColumnDimension('G')->setWidth(12);
+            $sheet->getColumnDimension('G')->setWidth(15);
+            $sheet->getColumnDimension('H')->setWidth(12);
 
             // === PIE DE PÁGINA ===
             $footerRow = $detailRow + 2;

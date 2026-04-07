@@ -10,6 +10,8 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 use Illuminate\Support\Facades\Event;
 use App\Models\Pago;
 use App\Observers\PagoObserver;
+use App\Events\UserPasswordChanged;
+use App\Listeners\SecurityEventListener;
 
 class EventServiceProvider extends ServiceProvider
 {
@@ -27,6 +29,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         Logout::class => [
             \App\Listeners\TrackUserLogout::class,
+        ],
+        UserPasswordChanged::class => [
+            SecurityEventListener::class,
         ],
     ];
 

@@ -217,6 +217,8 @@
                             <tr>
                                 <th>Fecha</th>
                                 <th>Estudiante</th>
+                                <th>Documento</th>
+                                <th>Programa</th>
                                 <th>Concepto</th>
                                 <th class="text-end">Monto</th>
                                 <th class="text-end">Pagado</th>
@@ -228,6 +230,8 @@
                                 <tr>
                                     <td>{{ $pago->fecha->format('d/m/Y') }}</td>
                                     <td>{{ $pago->matricula?->student?->nombres ?? '' }} {{ $pago->matricula?->student?->apellidos ?? '' }}</td>
+                                    <td>{{ $pago->matricula?->student?->documento_identidad ?? 'N/A' }}</td>
+                                    <td>{{ $pago->matricula?->programa?->nombre ?? 'N/A' }}</td>
                                     <td>
                                         @if($pago->detalles->count() > 0)
                                             @foreach($pago->detalles as $detalle)

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Firebase\JWT\JWT;
 
 class WhatsAppController extends Controller
 {
@@ -23,7 +24,7 @@ class WhatsAppController extends Controller
         try {
             // Obtener lista de empresas
             $companies = $this->getCompanies();
-            
+
             return view('admin.whatsapp.dashboard', compact('companies'));
         } catch (\Exception $e) {
             return view('admin.whatsapp.dashboard', [
@@ -43,7 +44,7 @@ class WhatsAppController extends Controller
 
         try {
             $apiKey = 'api-key-' . Str::slug($request->name) . '-' . Str::random(8);
-            
+
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $this->getJwtToken(),
                 'Content-Type' => 'application/json'
@@ -139,6 +140,6 @@ class WhatsAppController extends Controller
             'service' => 'whatsapp-admin'
         ];
 
-        return \Firebase\JWT\JWT::encode($payload, $this->jwtSecret, 'HS256');
+        return JWT::encode($payload, $this->jwtSecret, 'HS256');
     }
 }

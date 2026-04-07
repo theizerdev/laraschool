@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class RecoveryPeriod extends Model
 {
-    use HasFactory, Multitenantable, LogsActivity, SoftDeletes;
+    use HasFactory, Multitenantable, LogsActivity;
 
     protected $fillable = [
         'empresa_id',
@@ -118,31 +118,31 @@ class RecoveryPeriod extends Model
     public function getStatusLabelAttribute(): string
     {
         $now = now();
-        
+
         if (!$this->is_active) {
             return 'Inactivo';
         }
-        
+
         if ($this->approved_at && $now < $this->start_date) {
             return 'Programado';
         }
-        
+
         if ($now >= $this->start_date && $now <= $this->end_date) {
             return 'En Curso';
         }
-        
+
         if ($now > $this->end_date) {
             return 'Finalizado';
         }
-        
+
         return 'Pendiente';
     }
 
     public function getIsRegistrationOpenAttribute(): bool
     {
         $now = now();
-        return $this->is_active && 
-               $now >= $this->registration_start_date && 
+        return $this->is_active &&
+               $now >= $this->registration_start_date &&
                $now <= $this->registration_end_date;
     }
 

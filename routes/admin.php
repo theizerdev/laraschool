@@ -195,7 +195,7 @@ Route::prefix('reportes')->as('reportes.')->group(function () {
     Route::get('/morosidad', \App\Livewire\Admin\Reportes\Morosidad::class)->name('morosidad');
     Route::get('/ingresos-totales', \App\Livewire\Admin\Reportes\IngresosTotales::class)->name('ingresos-totales');
     Route::get('/historico-matriculas', \App\Livewire\Admin\Reportes\HistoricoMatriculas::class)->name('historico-matriculas');
-    
+
     // Reportes Académicos - Fase 1
     Route::get('/estadisticas-calificaciones-materia', \App\Livewire\Admin\Reportes\EstadisticasCalificacionesMateria::class)->name('estadisticas-calificaciones-materia');
     Route::get('/rendimiento-estudiantil-periodo', \App\Livewire\Admin\Reportes\RendimientoEstudiantilPeriodo::class)->name('rendimiento-estudiantil-periodo');
@@ -232,25 +232,25 @@ Route::get('/notifications', \App\Livewire\Admin\Notifications\Index::class)->na
 Route::prefix('whatsapp')->as('whatsapp.')->group(function () {
     // Dashboard principal
     Route::get('/dashboard', \App\Livewire\Admin\Whatsapp\WhatsAppDashboard::class)->name('dashboard');
-    
+
     // Gestión de conexión
     Route::get('/connection', \App\Livewire\Admin\Whatsapp\WhatsAppConnection::class)->name('connection');
-    
+
     // Enviar mensajes
     Route::get('/send-messages', \App\Livewire\Admin\Whatsapp\WhatsAppSendMessages::class)->name('send-messages');
-    
+
     // Plantillas
     Route::get('/templates', \App\Livewire\Admin\Whatsapp\WhatsAppTemplates::class)->name('templates.index');
-    
+
     // Historial
     Route::get('/history', \App\Livewire\Admin\Whatsapp\WhatsAppHistory::class)->name('history');
-    
+
     // Mensajes programados
     Route::get('/scheduled-messages', \App\Livewire\Admin\Whatsapp\WhatsAppScheduledMessages::class)->name('scheduled-messages');
-    
+
     // Mantener rutas antiguas para compatibilidad temporal
     Route::get('/', \App\Livewire\Admin\Whatsapp\Index::class)->name('index');
-    
+
     // Estadísticas
     Route::get('/statistics', \App\Livewire\Admin\Whatsapp\WhatsAppStatistics::class)->name('statistics');
 });

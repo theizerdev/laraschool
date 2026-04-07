@@ -31,7 +31,7 @@ class Create extends Component
         'code' => 'required|string|max:50|unique:study_plans',
         'description' => 'nullable|string|max:1000',
         'program_id' => 'required|exists:programas,id',
-        'educational_level_id' => 'required|exists:nivel_educativos,id',
+        'educational_level_id' => 'required|exists:niveles_educativos,id',
         'total_credits' => 'nullable|integer|min:0',
         'total_hours' => 'nullable|integer|min:0',
         'duration_years' => 'nullable|integer|min:0',

@@ -63,6 +63,7 @@ class AcademicRecord extends Model
     const STATUS_COMPLETED = 'completed';
     const STATUS_FAILED = 'failed';
     const STATUS_WITHDRAWN = 'withdrawn';
+    const STATUS_IN_RECOVERY = 'in_recovery';
 
     public static function getStatuses(): array
     {
@@ -71,6 +72,7 @@ class AcademicRecord extends Model
             self::STATUS_COMPLETED => 'Completado',
             self::STATUS_FAILED => 'Reprobado',
             self::STATUS_WITHDRAWN => 'Retirado',
+            self::STATUS_IN_RECOVERY => 'En Recuperación',
         ];
     }
 
@@ -102,6 +104,16 @@ class AcademicRecord extends Model
     public function educationalLevel(): BelongsTo
     {
         return $this->belongsTo(EducationalLevel::class);
+    }
+
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(Teacher::class, 'teacher_id');
+    }
+
+    public function recoveryPeriod(): BelongsTo
+    {
+        return $this->belongsTo(RecoveryPeriod::class, 'recovery_period_id');
     }
 
     public function empresa(): BelongsTo

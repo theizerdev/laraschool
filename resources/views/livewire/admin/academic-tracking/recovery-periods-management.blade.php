@@ -177,7 +177,7 @@
     </div>
 
     <!-- Modal para Crear/Editar Período -->
-    @if($showModal)
+    @if($showForm)
         <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);" wire:click.self="closeModal">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -316,8 +316,8 @@
                                             <div><small class="text-muted">Fin:</small> {{ $period->end_date->format('d/m/Y') }}</div>
                                         </td>
                                         <td>
-                                            <div><small class="text-muted">Inicio:</small> {{ $period->enrollment_start_date->format('d/m/Y') }}</div>
-                                            <div><small class="text-muted">Fin:</small> {{ $period->enrollment_end_date->format('d/m/Y') }}</div>
+                                            <div><small class="text-muted">Inicio:</small> {{ optional($period->enrollment_start_date)->format('d/m/Y') ?? 'N/A' }}</div>
+                                            <div><small class="text-muted">Fin:</small> {{ optional($period->enrollment_end_date)->format('d/m/Y') ?? 'N/A' }}</div>
                                         </td>
                                         <td>
                                             <div><small class="text-muted">Min:</small> {{ $period->min_failing_grade }}</div>
@@ -332,26 +332,29 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <div><small class="text-muted">Total:</small> {{ $period->academicRecords->count() }}</div>
-                                            <div><small class="text-muted">Aprobados:</small> {{ $period->academicRecords->where('status', 'approved')->count() }}</div>
+                                            <div><small class="text-muted">Total:</small> {{ $period->recoveryEnrollments->count() }}</div>
+                                            <div><small class="text-muted">Aprobados:</small> {{ $period->recoveryEnrollments->where('enrollment_status', 'approved')->count() }}</div>
                                         </td>
                                         <td>
-                                            <div class="btn-group" role="group">
-                                                <button wire:click="viewStudents({{ $period->id }})" class="btn btn-sm btn-info" title="Ver Estudiantes">
-                                                    <i class="bx bx-show"></i>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="bx bx-dots-vertical-rounded"></i>
                                                 </button>
-                                                <button wire:click="edit({{ $period->id }})" class="btn btn-sm btn-warning" title="Editar">
-                                                    <i class="bx bx-edit"></i>
-                                                </button>
-                                                <button wire:click="approve({{ $period->id }})" class="btn btn-sm btn-success" title="Aprobar" @if($period->status === 'approved') disabled @endif>
-                                                    <i class="bx bx-check"></i>
-                                                </button>
-                                                <button wire:click="toggleStatus({{ $period->id }})" class="btn btn-sm btn-secondary" title="{{ $period->is_active ? 'Desactivar' : 'Activar' }}">
-                                                    <i class="bx bx-{{ $period->is_active ? 'toggle-right' : 'toggle-left' }}"></i>
-                                                </button>
-                                                <button wire:click="printPeriodReport({{ $period->id }})" class="btn btn-sm btn-dark" title="Imprimir Reporte">
-                                                    <i class="bx bx-printer"></i>
-                                                </button>
+                                                <div class="dropdown-menu dropdown-menu-end">
+                                                    <a class="dropdown-item" href="#" wire:click.prevent="viewStudents({{ $period->id }})"><i class="bx bx-show me-1"></i> Ver Estudiantes</a>
+                                                    <a class="dropdown-item" href="#" wire:click.prevent="edit({{ $period->id }})"><i class="bx bx-edit me-1"></i> Editar</a>
+                                                    @if($period->status !== 'approved')
+                                                        <a class="dropdown-item" href="#" wire:click.prevent="approve({{ $period->id }})"><i class="bx bx-check-circle me-1"></i> Aprobar</a>
+                                                    @endif
+                                                    <a class="dropdown-item" href="#" wire:click.prevent="toggleStatus({{ $period->id }})">
+                                                        @if($period->is_active)
+                                                            <i class="bx bx-toggle-right me-1"></i> Desactivar
+                                                        @else
+                                                            <i class="bx bx-toggle-left me-1"></i> Activar
+                                                        @endif
+                                                    </a>
+                                                    <a class="dropdown-item" href="#" wire:click.prevent="printPeriodReport({{ $period->id }})"><i class="bx bx-printer me-1"></i> Imprimir Reporte</a>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -376,7 +379,7 @@
     </div>
 
     <!-- Modal para Ver Estudiantes -->
-    @if($showStudentsModal)
+    @if($showStudents)
         <div class="modal fade show d-block" style="background-color: rgba(0,0,0,0.5);" wire:click.self="closeStudentsModal">
             <div class="modal-dialog modal-xl">
                 <div class="modal-content">
@@ -398,7 +401,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($currentPeriodStudents as $record)
+                                    @forelse($studentsInRecovery as $record)
                                         <tr>
                                             <td>
                                                 <div>

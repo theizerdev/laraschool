@@ -198,16 +198,18 @@
                         <tbody>
                             @foreach($morosos as $moroso)
                                 <tr>
+                                    <td>{{ $moroso['estudiante_nombre'] }}</td>
+                                    <td>{{ $moroso['programa_nombre'] }}</td>
+                                    <td>{{ $moroso['nivel_nombre'] }}</td>
                                     <td>
-                                        {{ $moroso['matricula']->estudiante->nombres ?? '' }}
-                                        {{ $moroso['matricula']->estudiante->apellidos ?? '' }}
-                                        <div class="small text-muted">
-                                            {{ $moroso['matricula']->estudiante->documento_identidad ?? '' }}
-                                        </div>
+                                        <span class="badge 
+                                            @if($moroso['estado'] === 'Al día') bg-success 
+                                            @elseif($moroso['estado'] === 'Pendiente') bg-warning 
+                                            @else bg-danger 
+                                            @endif">
+                                            {{ $moroso['estado'] }}
+                                        </span>
                                     </td>
-                                    <td>{{ $moroso['matricula']->programa->nombre ?? '' }}</td>
-                                    <td>{{ $moroso['matricula']->programa->nivelEducativo->nombre ?? '' }}</td>
-                                    <td>{{ $moroso['estado'] }}</td>
                                     <td class="text-end">{{ $moroso['cantidad_cuotas'] }}</td>
                                     <td class="text-end"><x-dual-currency :amount="$moroso['costo_rango']" /></td>
                                     <td class="text-end"><x-dual-currency :amount="$moroso['pagado_rango']" /></td>
@@ -222,10 +224,24 @@
                                             <span class="badge bg-info">Bajo Riesgo</span>
                                         @endif
                                     </td>
-                                    <td>
-                                        <button wire:click="mostrarDetalleDeuda({{ $moroso['matricula']->id }})" class="btn btn-sm btn-primary">
-                                            <i class="ri ri-eye-line"></i> Detalle
+                                    <td class="text-center">
+                                        <button 
+                                            wire:click="mostrarDetalleDeuda({{ $moroso['id'] }})"
+                                            class="btn btn-sm btn-outline-primary"
+                                            title="Ver detalles"
+                                        >
+                                            <i class="fas fa-eye"></i>
                                         </button>
+                                        @if(config('whatsapp.active'))
+                                        <button 
+                                            wire:click="enviarNotificacion({{ $moroso['id'] }})"
+                                            class="btn btn-sm btn-outline-success ms-1"
+                                            title="Enviar notificación por WhatsApp"
+                                            @if($whatsappStatus !== 'connected') disabled @endif
+                                        >
+                                            <i class="fab fa-whatsapp"></i>
+                                        </button>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

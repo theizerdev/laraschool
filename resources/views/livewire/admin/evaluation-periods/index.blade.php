@@ -172,7 +172,7 @@
                                                 <i class="ri ri-more-2-line"></i>
                                             </button>
                                             <div class="dropdown-menu">
-                                                @can('edit evaluation_periods')
+                                                @can('edit evaluation periods')
                                                 <a class="dropdown-item" href="{{ route('admin.evaluation-periods.edit', $period->id) }}">
                                                     <i class="ri ri-pencil-line me-1"></i> Editar
                                                 </a>
@@ -185,7 +185,7 @@
                                                     {{ $period->is_closed ? 'Abrir' : 'Cerrar' }}
                                                 </button>
                                                 @endcan
-                                                @can('delete evaluation_periods')
+                                                @can('delete evaluation periods')
                                                 <button type="button" class="dropdown-item text-danger"
                                                         wire:click="delete({{ $period->id }})"
                                                         wire:confirm="¿Estás seguro de eliminar este lapso?">

@@ -104,7 +104,7 @@
                     <div class="row">
                         <div class="col-md-3">
                             <label class="form-label">Período Escolar</label>
-                            <select class="form-select" wire:model="selectedPeriodId">
+                            <select class="form-select" wire:model.change="selectedPeriodId">
                                 <option value="">Seleccione período</option>
                                 @foreach($schoolPeriods as $period)
                                     <option value="{{ $period->id }}">{{ $period->nombre }}</option>
@@ -113,7 +113,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Programa</label>
-                            <select class="form-select" wire:model="selectedProgramId">
+                            <select class="form-select" wire:model.change="selectedProgramId">
                                 <option value="">Seleccione programa</option>
                                 @foreach($programs as $program)
                                     <option value="{{ $program->id }}">{{ $program->nombre }}</option>
@@ -122,7 +122,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Nivel Educativo</label>
-                            <select class="form-select" wire:model="selectedLevelId">
+                            <select class="form-select" wire:model.change="selectedLevelId">
                                 <option value="">Seleccione nivel</option>
                                 @foreach($educationalLevels as $level)
                                     <option value="{{ $level->id }}">{{ $level->nombre }}</option>
@@ -131,7 +131,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Grado</label>
-                            <select class="form-select" wire:model="selectedGrade">
+                            <select class="form-select" wire:model.change="selectedGrade">
                                 <option value="">Seleccione grado</option>
                                 @foreach($grades as $grade)
                                     <option value="{{ $grade }}">{{ $grade }}</option>
@@ -142,7 +142,7 @@
                     <div class="row mt-3">
                         <div class="col-md-3">
                             <label class="form-label">Sección</label>
-                            <select class="form-select" wire:model="selectedSection">
+                            <select class="form-select" wire:model.change="selectedSection">
                                 <option value="">Seleccione sección</option>
                                 @foreach($sections as $section)
                                     <option value="{{ $section }}">{{ $section }}</option>
@@ -151,7 +151,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Estado de Promoción</label>
-                            <select class="form-select" wire:model="promotionStatus">
+                            <select class="form-select" wire:model.change="promotionStatus">
                                 <option value="">Todos</option>
                                 <option value="promoted">Promovidos</option>
                                 <option value="repeated">Retenidos</option>
@@ -166,7 +166,7 @@
                         <div class="col-md-3">
                             <label class="form-label">Opciones</label>
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="showOnlyPending" wire:model="showOnlyPending">
+                                <input class="form-check-input" type="checkbox" id="showOnlyPending" wire:model.change="showOnlyPending">
                                 <label class="form-check-label" for="showOnlyPending">Solo pendientes</label>
                             </div>
                         </div>
@@ -199,7 +199,7 @@
                                     <th>Estudiante</th>
                                     <th>Código</th>
                                     <th>Programa</th>
-                                    <th>Nivel</th>
+                                    <th>Nivel Educativo</th>
                                     <th>Grado/Sección</th>
                                     <th>Materias Aprobadas</th>
                                     <th>Materias Reprobadas</th>
@@ -209,80 +209,70 @@
                             </thead>
                             <tbody>
                                 @forelse($students as $student)
-                                @php
-                                    $studentRecords = $student->academicRecords;
-                                    $totalSubjects = $studentRecords->count();
-                                    $approvedSubjects = $studentRecords->where('approved', true)->count();
-                                    $failedSubjects = $studentRecords->where('approved', false)->count();
-                                    $inRecoverySubjects = $studentRecords->where('status', 'in_recovery')->count();
-                                    $promoted = $studentRecords->where('promoted', true)->isNotEmpty();
-                                    $repeated = $studentRecords->where('repeated', true)->isNotEmpty();
-                                @endphp
-                                <tr>
-                                    <td>
-                                        <strong>{{ $student->nombres }} {{ $student->apellidos }}</strong>
-                                    </td>
-                                    <td>{{ $student->codigo }}</td>
-                                    <td>{{ $studentRecords->first()->program->nombre ?? '-' }}</td>
-                                    <td>{{ $studentRecords->first()->educationalLevel->nombre ?? '-' }}</td>
-                                    <td>{{ $studentRecords->first()->grade ?? '-' }} "{{ $studentRecords->first()->section ?? '-' }}"</td>
-                                    <td>
-                                        <span class="badge bg-success">{{ $approvedSubjects }}</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-danger">{{ $failedSubjects }}</span>
-                                        @if($inRecoverySubjects > 0)
-                                            <br><small class="text-warning">({{ $inRecoverySubjects }} en recuperación)</small>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($promoted)
-                                            <span class="badge bg-success">Promovido</span>
-                                        @elseif($repeated)
-                                            <span class="badge bg-warning">Retenido</span>
-                                        @elseif($inRecoverySubjects > 0)
-                                            <span class="badge bg-info">En Recuperación</span>
-                                        @else
-                                            <span class="badge bg-secondary">Pendiente</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                <i class="bx bx-dots-vertical-rounded"></i>
-                                            </button>
-                                            <div class="dropdown-menu">
-                                                @if(!$promoted && !$repeated)
-                                                    <a class="dropdown-item" href="#" wire:click.prevent="promoteStudent({{ $student->id }})">
-                                                        <i class="bx bx-check-circle me-1"></i> Promover
+                                    @php
+                                        // Lógica de cálculo ahora en el backend, aquí solo mostramos
+                                        $totalSubjects = $student->academicRecords->count();
+                                        $approvedSubjects = $student->academicRecords->where('final_grade', '>=', 10)->count();
+                                        $failedSubjects = $totalSubjects - $approvedSubjects;
+                                        $firstRecord = $student->academicRecords->first();
+                                    @endphp
+                                    <tr>
+                                        <td><strong>{{ $student->nombres }} {{ $student->apellidos }}</strong></td>
+                                        <td>{{ $student->codigo }}</td>
+                                        <td>{{ $firstRecord->program->nombre ?? 'N/A' }}</td>
+                                        <td>{{ $firstRecord->educationalLevel->nombre ?? 'N/A' }}</td>
+                                        <td>{{ $firstRecord->grade ?? 'N/A' }} "{{ $firstRecord->section ?? 'N/A' }}"</td>
+                                        <td><span class="badge bg-success">{{ $approvedSubjects }}</span></td>
+                                        <td><span class="badge bg-danger">{{ $failedSubjects }}</span></td>
+                                        <td>
+                                            @switch($student->promotion_status)
+                                                @case('promoted')
+                                                    <span class="badge bg-success">Promovido</span>
+                                                    @break
+                                                @case('repeated')
+                                                    <span class="badge bg-danger">Retenido</span>
+                                                    @break
+                                                @case('in_recovery')
+                                                    <span class="badge bg-info">En Recuperación</span>
+                                                    @break
+                                                @default
+                                                    <span class="badge bg-secondary">Pendiente</span>
+                                            @endswitch
+                                        </td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                    <i class="bx bx-dots-vertical-rounded"></i>
+                                                </button>
+                                                <div class="dropdown-menu">
+                                                    @if($student->promotion_status === 'pending' || $student->promotion_status === 'repeated')
+                                                        <a class="dropdown-item" href="#" wire:click.prevent="promoteStudent({{ $student->id }})">
+                                                            <i class="bx bx-check-circle me-1"></i> Promover
+                                                        </a>
+                                                    @endif
+                                                    @if($student->promotion_status === 'pending' || $student->promotion_status === 'promoted')
+                                                        <a class="dropdown-item" href="#" wire:click.prevent="repeatStudent({{ $student->id }})">
+                                                            <i class="bx bx-refresh me-1"></i> Retener
+                                                        </a>
+                                                    @endif
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="bx bx-show me-1"></i> Ver Historial
                                                     </a>
-                                                    <a class="dropdown-item" href="#" wire:click.prevent="repeatStudent({{ $student->id }})">
-                                                        <i class="bx bx-refresh me-1"></i> Retener
-                                                    </a>
-                                                @endif
-                                                <a class="dropdown-item" href="{{ route('admin.students.historico', $student->id) }}">
-                                                    <i class="bx bx-show me-1"></i> Ver Historial
-                                                </a>
-                                                <a class="dropdown-item" href="#" wire:click.prevent="">
-                                                    <i class="bx bx-printer me-1"></i> Imprimir Reporte
-                                                </a>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </td>
+                                    </tr>
                                 @empty
-                                <tr>
-                                    <td colspan="9" class="text-center">
-                                        No se encontraron estudiantes con los filtros aplicados
-                                    </td>
-                                </tr>
+                                    <tr>
+                                        <td colspan="9" class="text-center">No se encontraron estudiantes.</td>
+                                    </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
 
                     <div class="mt-3">
-                        {{ $students->links() }}
+                        {{ $students->links('livewire.pagination') }}
                     </div>
                 </div>
             </div>

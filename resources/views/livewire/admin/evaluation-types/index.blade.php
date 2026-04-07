@@ -56,7 +56,7 @@
                             <h5 class="card-title mb-1">Lista de Tipos de Evaluación</h5>
                             <p class="mb-0">Administra los tipos de evaluación del sistema</p>
                         </div>
-                        @can('create evaluation_types')
+                        @can('create evaluation types')
                         <div>
                             <a href="{{ route('admin.evaluation-types.create') }}" class="btn btn-primary">
                                 <i class="ri ri-add-line"></i> Nuevo Tipo
@@ -138,7 +138,7 @@
                                                 <i class="ri ri-more-2-line"></i>
                                             </button>
                                             <div class="dropdown-menu">
-                                                @can('edit evaluation_types')
+                                                @can('edit evaluation types')
                                                 <a class="dropdown-item" href="{{ route('admin.evaluation-types.edit', $type->id) }}">
                                                     <i class="ri ri-pencil-line me-1"></i> Editar
                                                 </a>

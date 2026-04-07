@@ -1,61 +1,51 @@
 <?php
 
-declare(strict_types=1);
-
 namespace App\Providers;
 
-use App\Domain\Contracts\Repositories\UserRepositoryInterface;
-use App\Infrastructure\Repositories\UserRepository;
 use Illuminate\Support\ServiceProvider;
+use App\Repositories\MatriculaRepository;
+use App\Repositories\EstudianteRepository;
+use App\Repositories\CronogramaPagoRepository;
+use App\Services\MatriculaService;
+use App\Repositories\Contracts\MatriculaRepositoryInterface;
+use App\Repositories\Contracts\EstudianteRepositoryInterface;
+use App\Repositories\Contracts\CronogramaPagoRepositoryInterface;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
-    /**
-     * Register services.
-     */
-    public function register(): void
+    public function register()
     {
-        // Bind repository interfaces to implementations
-        $this->app->bind(
-            UserRepositoryInterface::class,
-            UserRepository::class
+        // Registrar los repositorios como singleton
+        $this->app->singleton(
+            MatriculaRepositoryInterface::class,
+            MatriculaRepository::class
         );
-
-        // Additional repository bindings can be added here
-        // $this->app->bind(
-        //     StudentRepositoryInterface::class,
-        //     StudentRepository::class
-        // );
-
-        // $this->app->bind(
-        //     EmpresaRepositoryInterface::class,
-        //     EmpresaRepository::class
-        // );
-
-        // $this->app->bind(
-        //     SucursalRepositoryInterface::class,
-        //     SucursalRepository::class
-        // );
+        
+        $this->app->singleton(
+            EstudianteRepositoryInterface::class,
+            EstudianteRepository::class
+        );
+        
+        $this->app->singleton(
+            CronogramaPagoRepositoryInterface::class,
+            CronogramaPagoRepository::class
+        );
+        
+        // Registrar servicios
+        $this->app->singleton(
+            MatriculaService::class,
+            function($app) {
+                return new MatriculaService(
+                    $app->make(MatriculaRepositoryInterface::class),
+                    $app->make(EstudianteRepositoryInterface::class),
+                    $app->make(CronogramaPagoRepositoryInterface::class)
+                );
+            }
+        );
     }
 
-    /**
-     * Bootstrap services.
-     */
-    public function boot(): void
+    public function boot()
     {
-        // Additional boot logic if needed
-    }
-
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return array
-     */
-    public function provides(): array
-    {
-        return [
-            UserRepositoryInterface::class,
-            // Add other repository interfaces here
-        ];
+        //
     }
 }

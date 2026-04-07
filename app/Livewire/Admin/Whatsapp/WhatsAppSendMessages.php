@@ -139,18 +139,18 @@ class WhatsAppSendMessages extends Component
     {
         try {
             $this->students = DB::table('students')
-                ->select('id', 'first_name', 'last_name', 'phone', 'email')
-                ->whereNotNull('phone')
-                ->where('phone', '!=', '')
-                ->orderBy('first_name')
+                ->select('id', 'nombres', 'apellidos', 'telefono', 'correo_electronico')
+                ->whereNotNull('telefono')
+                ->where('telefono', '!=', '')
+                ->orderBy('nombres')
                 ->limit(100)
                 ->get()
                 ->map(function ($student) {
                     return [
                         'id' => $student->id,
-                        'name' => $student->first_name . ' ' . $student->last_name,
-                        'phone' => $student->phone,
-                        'email' => $student->email
+                        'name' => $student->nombres . ' ' . $student->apellidos,
+                        'phone' => $student->telefono,
+                        'email' => $student->correo_electronico
                     ];
                 })
                 ->toArray();

@@ -119,6 +119,45 @@
                             </div>
                         </div>
 
+                        <!-- Detalle de cuotas -->
+                        @if(count($detalleCuotas) > 0)
+                            <h6>Detalle de Cuotas</h6>
+                            <div class="table-responsive mb-4">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>N° Cuota</th>
+                                            <th>Monto</th>
+                                            <th>Pagado</th>
+                                            <th>Pendiente</th>
+                                            <th>Vence</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($detalleCuotas as $cuota)
+                                            <tr>
+                                                <td>{{ $cuota['numero_cuota'] }}</td>
+                                                <td>@money($cuota['monto'])</td>
+                                                <td>@money($cuota['monto_pagado'])</td>
+                                                <td>@money($cuota['saldo_pendiente'])</td>
+                                                <td>{{ $cuota['fecha_vencimiento'] }}</td>
+                                                <td>
+                                                    @if($cuota['estado'] == 'pagado')
+                                                        <span class="badge bg-success">Pagado</span>
+                                                    @elseif($cuota['estado'] == 'pendiente')
+                                                        <span class="badge bg-warning">Pendiente</span>
+                                                    @else
+                                                        <span class="badge bg-danger">Vencida</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+
                         @if(count($pagos) > 0)
                             <h6>Detalle de Pagos</h6>
                             <div class="table-responsive">
@@ -126,9 +165,9 @@
                                     <thead>
                                         <tr>
                                             <th>Fecha</th>
+                                            <th>Documento</th>
                                             <th>Concepto</th>
                                             <th>Monto</th>
-                                            <th>Pagado</th>
                                             <th>Estado</th>
                                         </tr>
                                     </thead>
@@ -136,6 +175,7 @@
                                         @foreach($pagos as $pago)
                                             <tr>
                                                 <td>{{ format_date($pago->fecha) }}</td>
+                                                <td>{{ $pago->numero_completo ?? 'N/A' }}</td>
                                                 <td>
                                                     @if($pago->detalles->count() > 0)
                                                         @foreach($pago->detalles as $detalle)
@@ -146,7 +186,6 @@
                                                         N/A
                                                     @endif
                                                 </td>
-                                                <td>@money($pago->total)</td>
                                                 <td>@money($pago->total)</td>
                                                 <td>
                                                     @if($pago->estado == 'aprobado')

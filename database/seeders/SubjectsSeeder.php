@@ -17,7 +17,7 @@ class SubjectsSeeder extends Seeder
         // Obtener programas y niveles educativos existentes
         $programas = Programa::all();
         $educationalLevels = EducationalLevel::all();
-        
+
         if ($programas->isEmpty() || $educationalLevels->isEmpty()) {
             $this->command->info('Se necesitan programas y niveles educativos creados para crear materias de ejemplo.');
             return;
@@ -31,6 +31,8 @@ class SubjectsSeeder extends Seeder
                 'credits' => 4,
                 'hours_per_week' => 6,
                 'program_id' => $programas->first()->id,
+                'empresa_id' => $programas->first()->empresa_id,
+                'sucursal_id' => $programas->first()->sucursal_id,
                 'educational_level_id' => $educationalLevels->first()->id,
                 'is_active' => true,
             ],
@@ -40,7 +42,9 @@ class SubjectsSeeder extends Seeder
                 'description' => 'Estudio de vectores, matrices, sistemas de ecuaciones lineales y espacios vectoriales.',
                 'credits' => 3,
                 'hours_per_week' => 4,
-                'program_id' => $programas->first()->id,
+                 'program_id' => $programas->first()->id,
+                'empresa_id' => $programas->first()->empresa_id,
+                'sucursal_id' => $programas->first()->sucursal_id,
                 'educational_level_id' => $educationalLevels->first()->id,
                 'is_active' => true,
             ],
@@ -50,7 +54,9 @@ class SubjectsSeeder extends Seeder
                 'description' => 'Introducción al cálculo diferencial, límites, derivadas y sus aplicaciones.',
                 'credits' => 5,
                 'hours_per_week' => 8,
-                'program_id' => $programas->first()->id,
+                 'program_id' => $programas->first()->id,
+                'empresa_id' => $programas->first()->empresa_id,
+                'sucursal_id' => $programas->first()->sucursal_id,
                 'educational_level_id' => $educationalLevels->first()->id,
                 'is_active' => true,
             ],
@@ -60,7 +66,9 @@ class SubjectsSeeder extends Seeder
                 'description' => 'Cálculo integral, técnicas de integración y aplicaciones del cálculo integral.',
                 'credits' => 5,
                 'hours_per_week' => 8,
-                'program_id' => $programas->first()->id,
+                 'program_id' => $programas->first()->id,
+                'empresa_id' => $programas->first()->empresa_id,
+                'sucursal_id' => $programas->first()->sucursal_id,
                 'educational_level_id' => $educationalLevels->first()->id,
                 'is_active' => true,
             ],
@@ -70,7 +78,9 @@ class SubjectsSeeder extends Seeder
                 'description' => 'Mecánica clásica, cinemática, dinámica y leyes de conservación.',
                 'credits' => 4,
                 'hours_per_week' => 6,
-                'program_id' => $programas->first()->id,
+                 'program_id' => $programas->first()->id,
+                'empresa_id' => $programas->first()->empresa_id,
+                'sucursal_id' => $programas->first()->sucursal_id,
                 'educational_level_id' => $educationalLevels->first()->id,
                 'is_active' => true,
             ],
@@ -80,7 +90,9 @@ class SubjectsSeeder extends Seeder
                 'description' => 'Introducción a la programación, algoritmos básicos y estructuras de control.',
                 'credits' => 4,
                 'hours_per_week' => 6,
-                'program_id' => $programas->first()->id,
+                 'program_id' => $programas->first()->id,
+                'empresa_id' => $programas->first()->empresa_id,
+                'sucursal_id' => $programas->first()->sucursal_id,
                 'educational_level_id' => $educationalLevels->first()->id,
                 'is_active' => true,
             ],

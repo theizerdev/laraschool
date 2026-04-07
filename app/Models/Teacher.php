@@ -7,10 +7,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
+use App\Traits\Multitenantable;
 class Teacher extends Model
 {
-    use HasFactory;
+    use HasFactory, Multitenantable;
 
     protected $table = 'teachers';
 
@@ -23,6 +23,8 @@ class Teacher extends Model
         'degree',
         'years_experience',
         'hire_date',
+        'empresa_id',
+        'sucursal_id',
         'is_active',
         'created_by',
         'updated_by'

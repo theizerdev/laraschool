@@ -167,6 +167,8 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RegionalConfigurationServiceProvider::class,
         App\Providers\RegionalFormattingServiceProvider::class,
+        App\Providers\RepositoryServiceProvider::class,
+        App\Providers\ConsoleServiceProvider::class,
         // App\Providers\RouteServiceProvider::class,
     ])->toArray(),
 

@@ -431,14 +431,14 @@ class RolesAndPermissionsSeeder extends Seeder
         // Asignar permisos de Control de Estudios y Secciones y Horarios a Administradores y Super Administradores
         $academicPermissions = Permission::whereIn('module', [
             'evaluation_periods',
-            'evaluation_types', 
+            'evaluation_types',
             'evaluations',
             'grades',
             'classrooms',
             'sections',
             'schedules'
         ])->get();
-        
+
         $superAdminRole->givePermissionTo($academicPermissions);
         $adminRole->givePermissionTo($academicPermissions);
 
@@ -446,7 +446,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $studyPlanPermissions = Permission::whereIn('module', [
             'study_plans'
         ])->get();
-        
+
         $superAdminRole->givePermissionTo($studyPlanPermissions);
         $adminRole->givePermissionTo($studyPlanPermissions);
 
@@ -457,7 +457,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'view asistencia evaluaciones',
             'view boletines calificaciones'
         ])->get();
-        
+
         $superAdminRole->givePermissionTo($academicReportsPermissions);
         $adminRole->givePermissionTo($academicReportsPermissions);
 
@@ -467,22 +467,25 @@ class RolesAndPermissionsSeeder extends Seeder
             'recovery_periods',
             'promotion_control'
         ])->get();
-        
+
         $superAdminRole->givePermissionTo($academicTrackingPermissions);
         $adminRole->givePermissionTo($academicTrackingPermissions);
 
         // Asignar permisos al Recepcionista (estudiantes, matrículas, pagos, profesores, dashboard básico y algunos de Control de Estudios)
-        $recepcionistaPermissions = Permission::whereIn('module', [
-            'students',
-            'matriculas',
-            'pagos',
-            'teachers',
-            'evaluation_periods', // Solo ver lapsos
-            'evaluation_types',   // Solo ver tipos de evaluación
-            'classrooms',         // Solo ver aulas
-            'sections',           // Solo ver secciones
-            'schedules'           // Solo ver horarios
-        ])->orWhereIn('name', [
+        $recepcionistaPermissions = Permission::whereIn('name', [
+            'access students',
+            'create students',
+            'edit students',
+            'view student historico',
+            'access matriculas',
+            'create matriculas',
+            'edit matriculas',
+            'view matriculas',
+            'access pagos',
+            'create pagos',
+            'view pagos',
+            'access teachers',
+            'view teachers',
             'access dashboard',
             'dashboard.alerts',
             'dashboard.academic',
@@ -501,16 +504,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $recepcionistaRole->syncPermissions($recepcionistaPermissions);
 
         // Asignar permisos básicos al Profesor (profesores, dashboard básico y Control de Estudios limitado)
-        $profesorPermissions = Permission::whereIn('module', [
-            'teachers',
-            'evaluation_periods', // Solo ver lapsos
-            'evaluation_types',   // Solo ver tipos de evaluación
-            'evaluations',        // Ver y crear evaluaciones
-            'grades',             // Ver y gestionar calificaciones
-            'classrooms',         // Solo ver aulas
-            'sections',           // Solo ver secciones
-            'schedules'           // Solo ver horarios
-        ])->orWhereIn('name', [
+        $profesorPermissions = Permission::whereIn('name', [
             'access dashboard',
             'dashboard.academic',
             'dashboard.access',
@@ -534,7 +528,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'view sections',
             'access schedules',
             'view schedules',
-            // Reportes Académicos - Solo ver
             'view estadisticas calificaciones materia',
             'view rendimiento estudiantil periodo',
             'view asistencia evaluaciones',

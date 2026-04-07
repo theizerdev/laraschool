@@ -9,14 +9,13 @@ use App\Models\Programa;
 use App\Models\EducationalLevel;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
+use App\Traits\HasDynamicLayout;
 
-#[Layout('layouts.app')]
 #[Title('Control de Promoción')]
 class PromotionControl extends Component
 {
-    use WithPagination;
+    use WithPagination, HasDynamicLayout;
 
     public $selectedPeriodId;
     public $selectedProgramId;
@@ -123,35 +122,93 @@ class PromotionControl extends Component
 
     public function getStudentsProperty()
     {
-        // Obtener estudiantes únicos con sus registros académicos
-        $studentIds = $this->getBaseQuery()
-            ->distinct()
-            ->pluck('student_id');
+        $query = Student::query();
 
-        return Student::whereIn('id', $studentIds)
-            ->with(['academicRecords' => function ($query) {
-                $query->where('school_period_id', $this->selectedPeriodId)
-                      ->where('program_id', $this->selectedProgramId)
-                      ->where('educational_level_id', $this->selectedLevelId)
-                      ->where('grade', $this->selectedGrade)
-                      ->where('section', $this->selectedSection);
-            }])
-            ->paginate(20);
+        // Aplicar filtros basados en las propiedades públicas
+        if ($this->selectedPeriodId) {
+            $query->whereHas('matriculas', function ($q) {
+                $q->where('periodo_id', $this->selectedPeriodId);
+            });
+        }
+
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('nombres', 'like', '%' . $this->search . '%')
+                  ->orWhere('apellidos', 'like', '%' . $this->search . '%')
+                  ->orWhere('codigo', 'like', '%' . $this->search . '%');
+            });
+        }
+
+        // Cargar relaciones necesarias
+        $query->with([
+            'academicRecords' => function ($q) {
+                if ($this->selectedPeriodId) {
+                    $q->where('school_period_id', $this->selectedPeriodId);
+                }
+            },
+            'academicRecords.subject',
+            'academicRecords.program',
+            'academicRecords.educationalLevel'
+        ]);
+
+        $students = $query->paginate(10);
+
+        // Calcular el estado de promoción para cada estudiante
+        $students->each(function ($student) {
+            $student->promotion_status = $this->calculatePromotionStatus($student);
+        });
+
+        // Filtrar por estado de promoción si se ha seleccionado uno
+        if ($this->promotionStatus) {
+            $students = $students->filter(function ($student) {
+                return $student->promotion_status === $this->promotionStatus;
+            });
+        }
+
+        return $students;
+    }
+
+    public function calculatePromotionStatus(Student $student): string
+    {
+        $academicRecords = $student->academicRecords;
+
+        if ($academicRecords->isEmpty()) {
+            return 'pending'; // No hay registros, estado pendiente
+        }
+
+        $totalSubjects = $academicRecords->count();
+        $approvedSubjects = 0;
+
+        foreach ($academicRecords as $record) {
+            // Asumimos que una nota final >= 10 es aprobatoria.
+            // Esto debería venir de una configuración del sistema.
+            if ($record->final_grade !== null && $record->final_grade >= 10) {
+                $approvedSubjects++;
+            }
+        }
+
+        if ($approvedSubjects === $totalSubjects) {
+            return 'promoted'; // Aprobó todas las materias
+        }
+
+        // Lógica simple: si no aprobó todo, se considera retenido por ahora.
+        // Esto puede expandirse para incluir "en recuperación".
+        return 'repeated';
     }
 
     public function getSchoolPeriodsProperty()
     {
-        return SchoolPeriod::tenant()->orderBy('nombre', 'desc')->get();
+        return SchoolPeriod::orderBy('name', 'desc')->get();
     }
 
     public function getProgramsProperty()
     {
-        return Programa::tenant()->orderBy('nombre')->get();
+        return Programa::orderBy('nombre')->get();
     }
 
     public function getEducationalLevelsProperty()
     {
-        return EducationalLevel::tenant()->orderBy('nombre')->get();
+        return EducationalLevel::orderBy('nombre')->get();
     }
 
     public function getGradesProperty()
@@ -167,9 +224,9 @@ class PromotionControl extends Component
     public function getStatsProperty()
     {
         $baseQuery = $this->getBaseQuery();
-        
+
         $totalStudents = $baseQuery->distinct('student_id')->count('student_id');
-        
+
         return [
             'total_students' => $totalStudents,
             'promoted_students' => (clone $baseQuery)->where('promoted', true)->distinct('student_id')->count('student_id'),
@@ -214,6 +271,6 @@ class PromotionControl extends Component
             'grades' => $this->grades,
             'sections' => $this->sections,
             'stats' => $this->stats,
-        ]);
+        ])->layout($this->getLayout(), ['title' => 'Control de Promoción']);
     }
 }

@@ -12,7 +12,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Registrar MorosidadCalculationService
+        $this->app->singleton(
+            \App\Services\MorosidadCalculationService::class,
+            \App\Services\MorosidadCalculationService::class
+        );
     }
 
     /**
@@ -22,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Registrar observers
         \App\Models\Empresa::observe(\App\Observers\EmpresaObserver::class);
+        \App\Models\Grade::observe(\App\Observers\GradeObserver::class);
         // Configurar vista de paginación personalizada para Livewire
         Paginator::defaultView('livewire.pagination');
         Paginator::defaultSimpleView('livewire.pagination');

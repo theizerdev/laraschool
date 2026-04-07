@@ -150,52 +150,48 @@ class Solventes extends Component
 
     public function render()
     {
-        // Obtener solo matrículas solventes
-        $matriculas = Matricula::query()
-            ->select('matriculas.*')
-            ->join('students', 'matriculas.estudiante_id', '=', 'students.id')
-            ->leftJoin('programas', 'matriculas.programa_id', '=', 'programas.id')
-            ->leftJoin('school_periods', 'matriculas.periodo_id', '=', 'school_periods.id')
-            ->with(['estudiante', 'programa', 'periodo', 'paymentSchedules'])
+        // Obtener solo matrículas solventes con eager loading explícito
+        // Se carga siempre la relación 'estudiante' para evitar problemas de N+1 queries
+        $matriculas = Matricula::with(['estudiante', 'programa', 'periodo', 'paymentSchedules'])
+            ->whereHas('estudiante')
+            ->where('solvente', true) // Solo matrículas solventes
             ->when($this->search, function ($query) {
-                $query->where(function ($subQuery) {
-                    $subQuery->where('students.nombres', 'like', '%' . $this->search . '%')
-                          ->orWhere('students.apellidos', 'like', '%' . $this->search . '%')
-                          ->orWhere('students.documento_identidad', 'like', '%' . $this->search . '%');
+                $query->whereHas('estudiante', function ($subQuery) {
+                    $subQuery->where('nombres', 'like', '%' . $this->search . '%')
+                        ->orWhere('apellidos', 'like', '%' . $this->search . '%')
+                        ->orWhere('documento_identidad', 'like', '%' . $this->search . '%');
                 });
             })
             ->when($this->status !== '', function ($query) {
-                $query->where('matriculas.estado', $this->status);
+                $query->where('estado', $this->status);
             })
-            ->whereIn('matriculas.id', function($subquery) {
+            ->whereIn('id', function($subquery) {
                 $subquery->selectRaw('MAX(id)')
                     ->from('matriculas')
-                    ->where('solvente', true)
-                    ->whereNotNull('periodo_id')
-                    ->whereNotNull('estudiante_id')
                     ->groupBy('estudiante_id');
             })
             ->orderBy($this->sortBy, $this->sortDirection)
             ->paginate($this->perPage);
 
-        // Estadísticas - Solo matrículas solventes únicas por estudiante
-        $matriculasUnicas = Matricula::where('solvente', true)
-            ->whereHas('estudiante')
+        // Verificación explícita de eager loading: asegurar que los estudiantes estén cargados
+        $matriculas->loadMissing(['estudiante']);
+
+        // Estadísticas - Contando matrículas únicas por estudiante
+        $uniqueMatriculasQuery = Matricula::whereHas('estudiante')
+            ->where('solvente', true) // Solo matrículas solventes
             ->whereIn('id', function($subquery) {
                 $subquery->selectRaw('MAX(id)')
                     ->from('matriculas')
                     ->groupBy('estudiante_id');
             });
-        
-        $totalMatriculas = (clone $matriculasUnicas)->count();
-        $matriculasActivas = (clone $matriculasUnicas)->where('estado', 'activo')->count();
-        $matriculasInactivas = (clone $matriculasUnicas)->where('estado', 'inactivo')->count();
-        $matriculasGraduadas = (clone $matriculasUnicas)->where('estado', 'graduado')->count();
-        $ingresosTotales = (clone $matriculasUnicas)->where('estado', 'activo')->sum('costo');
-        
-        // Todas las matrículas solventes se consideran solventes
-        $matriculasSolventes = $totalMatriculas;
-        $matriculasPendientes = 0;
+
+        $totalMatriculas = (clone $uniqueMatriculasQuery)->count();
+        $matriculasActivas = (clone $uniqueMatriculasQuery)->where('estado', 'activo')->count();
+        $matriculasInactivas = (clone $uniqueMatriculasQuery)->where('estado', 'inactivo')->count();
+        $matriculasGraduadas = (clone $uniqueMatriculasQuery)->where('estado', 'graduado')->count();
+        $ingresosTotales = (clone $uniqueMatriculasQuery)->where('estado', 'activo')->sum('costo');
+        $matriculasSolventes = (clone $uniqueMatriculasQuery)->where('solvente', true)->count();
+        $matriculasPendientes = (clone $uniqueMatriculasQuery)->where('solvente', false)->count();
 
         return view('livewire.admin.matriculas.solventes', compact(
             'matriculas',

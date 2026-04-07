@@ -46,7 +46,7 @@ class Create extends Component
 
     public function save()
     {
-        if (!auth()->user()->can('create evaluation_periods')) {
+        if (!auth()->user()->can('create evaluation periods')) {
             session()->flash('error', 'No tienes permiso para crear lapsos.');
             return;
         }

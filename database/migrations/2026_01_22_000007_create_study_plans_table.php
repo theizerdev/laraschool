@@ -33,14 +33,14 @@ return new class extends Migration
             $table->unsignedBigInteger('created_by')->nullable(); // Usuario que creó el plan
             $table->unsignedBigInteger('updated_by')->nullable(); // Usuario que actualizó el plan
             $table->timestamps();
-            
+
             // Índices
             $table->index('program_id');
             $table->index('educational_level_id');
             $table->index('status');
             $table->index('is_default');
             $table->index('code');
-            
+
             // Claves foráneas
             $table->foreign('program_id')->references('id')->on('programas')->onDelete('cascade');
             $table->foreign('educational_level_id')->references('id')->on('niveles_educativos')->onDelete('cascade');
