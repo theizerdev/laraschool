@@ -109,10 +109,33 @@ class Create extends Component
                 return;
             }
         }
+        
+        // Intentar obtener la tasa del día actual
         $tasaHoy = \App\Models\ExchangeRate::getTodayRate();
         if ($tasaHoy) {
             $this->tasa_cambio = $tasaHoy->usd_rate;
             $this->mostrar_bolivares = true;
+            return;
+        }
+        
+        // Si no hay tasa para hoy, intentar obtener la tasa más reciente disponible
+        $ultimaTasa = \App\Models\ExchangeRate::orderBy('date', 'desc')
+            ->whereNotNull('usd_rate')
+            ->first();
+            
+        if ($ultimaTasa) {
+            $this->tasa_cambio = $ultimaTasa->usd_rate;
+            $this->mostrar_bolivares = true;
+            
+            // Mostrar advertencia si la tasa no es de hoy
+            if ($ultimaTasa->date->lt(today())) {
+                session()->flash('warning', 'No se encontró tasa de cambio para la fecha seleccionada ni para hoy. Se está utilizando la tasa más reciente disponible del ' . $ultimaTasa->date->format('d/m/Y'));
+            }
+        } else {
+            // Si no hay ninguna tasa registrada, usar una tasa por defecto
+            $this->tasa_cambio = 36.50; // Tasa por defecto
+            $this->mostrar_bolivares = true;
+            session()->flash('warning', 'No se encontró ninguna tasa de cambio registrada. Se está utilizando una tasa por defecto de 36.50 Bs/$');
         }
     }
 
@@ -365,6 +388,22 @@ class Create extends Component
     {
         if ($this->tasa_cambio) {
             return $this->total * $this->tasa_cambio;
+        }
+        return 0;
+    }
+
+    public function getSubtotalBolivaresProperty()
+    {
+        if ($this->tasa_cambio) {
+            return $this->subtotal * $this->tasa_cambio;
+        }
+        return 0;
+    }
+
+    public function getDescuentoBolivaresProperty()
+    {
+        if ($this->tasa_cambio) {
+            return $this->descuento * $this->tasa_cambio;
         }
         return 0;
     }

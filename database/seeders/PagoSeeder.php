@@ -35,16 +35,28 @@ class PagoSeeder extends Seeder
         $conceptoCuotaInicial = $conceptos->where('nombre', 'Cuota Inicial')->first();
         $conceptoMensualidad = $conceptos->where('nombre', 'Mensualidad')->first();
 
+        // Obtener usuario admin para asignar a los pagos
+        $userId = DB::table('users')->where('email', 'admin@example.com')->value('id') ?? 1;
+
         // Create payments for each matricula
         foreach ($matriculas as $matricula) {
             // Create a single payment for the matricula
             $pago = Pago::create([
                 'matricula_id' => $matricula->id,
-                'fecha_pago' => $matricula->fecha_matricula,
-                'monto' => 0, // The total amount will be calculated from the details
+                'user_id' => $userId,
+                'serie' => '001',
+                'numero' => str_pad($matricula->id, 8, '0', STR_PAD_LEFT),
+                'tipo_pago' => Pago::TIPO_RECIBO,
+                'fecha' => $matricula->fecha_matricula,
+                'subtotal' => 0,
+                'descuento' => 0,
+                'total' => 0, // The total amount will be calculated from the details
                 'metodo_pago' => 'efectivo',
                 'referencia' => 'PAGO-' . strtoupper(uniqid()),
-                'estado' => 'pagado', // Initial state
+                'estado' => Pago::ESTADO_APROBADO, // Initial state
+                'observaciones' => 'Pago generado por seeder',
+                'empresa_id' => $matricula->empresa_id ?? 1,
+                'sucursal_id' => $matricula->sucursal_id ?? 1,
             ]);
 
             $totalMonto = 0;
@@ -94,7 +106,7 @@ class PagoSeeder extends Seeder
             }
 
             // Update the total amount of the payment
-            $pago->update(['monto' => $totalMonto]);
+            $pago->update(['subtotal' => $totalMonto, 'total' => $totalMonto]);
         }
     }
 

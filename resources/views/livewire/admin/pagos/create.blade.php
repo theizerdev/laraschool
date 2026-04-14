@@ -212,7 +212,9 @@
                             <label class="form-label">Monto ($)</label>
                             <input type="number" step="0.01" wire:model.live="metodos_pago_mixto.{{ $index }}.monto" class="form-control" placeholder="0.00">
                              @if(in_array($metodo['metodo'], ['transferencia', 'pago_movil', 'efectivo_bolivares']) && $metodo['monto'] > 0 && $tasa_cambio)
-
+                                <small class="text-success mt-1 d-block">
+                                    <strong>Bs. {{ number_format($metodo['monto'] * $tasa_cambio, 2, ',', '.') }}</strong>
+                                </small>
                             @endif
                         </div>
                         <div class="col-md-4">
@@ -239,25 +241,29 @@
                         <div class="col-md-4">
                             <div class="alert alert-info">
                                 <strong>Total Configurado:</strong> ${{ number_format($this->totalPagoMixto, 2) }}
-                                 @if(in_array($metodo['metodo'], ['transferencia', 'pago_movil', 'efectivo_bolivares']) && $metodo['monto'] > 0 && $tasa_cambio)
+                                 @if($tasa_cambio != null)
                                 <small class="text-success mt-1 d-block">
-                                   <strong>Total en Bolívares:</strong> <strong>Bs. {{ number_format($metodo['monto'] * $tasa_cambio, 2) }}</strong>
+                                   <strong>Total en Bolívares:</strong> <strong>Bs. {{ number_format($this->totalPagoMixto * $tasa_cambio, 2) }}</strong>
                                 </small>
-                            @endif
+                                @endif
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="alert {{ $this->totalPagoMixto == $this->total ? 'alert-success' : 'alert-warning' }}">
                                 <strong>Total a Pagar:</strong> ${{ number_format($this->total, 2) }}
+                                @if($tasa_cambio != null)
+                                <small class="text-success mt-1 d-block">
+                                   <strong>Total en Bolívares:</strong> <strong>Bs. {{ number_format($this->total * $tasa_cambio, 2) }}</strong>
+                                </small>
+                                @endif
                                 @if($this->totalPagoMixto != $this->total)
                                     <br><small>Los montos no coinciden</small>
                                  @else
                                     <br><small class="text-success">Los montos coinciden</small>
                                 @endif
-
                             </div>
                         </div>
-                        @if($tasa_cambio)
+                        @if($tasa_cambio != null)
                         <div class="col-md-4">
                             <div class="alert alert-secondary">
                                 <strong>Tasa del día:</strong> {{ number_format($tasa_cambio, 4) }} Bs/$
@@ -607,27 +613,34 @@
                                         <div class="card-body text-center py-3">
                                             <h3 class="mb-1">@money($this->total)</h3>
                                             <p class="mb-0 opacity-75">Total a Pagar</p>
-                                            @if($this->totalBolivares > 0)
-                                                <small class="opacity-75">Bs. {{ number_format($this->totalBolivares, 2, ',', '.') }}</small>
+                                            @if($tasa_cambio != null)
+                                                <div class="mt-2">
+                                                    <small class="opacity-75 d-block">Tasa: {{ number_format($tasa_cambio, 4, ',', '.') }} Bs/$</small>
+                                                    <h5 class="mb-0 text-warning">Bs. {{ number_format($this->totalBolivares, 2, ',', '.') }}</h5>
+                                                </div>
                                             @endif
                                         </div>
                                     </div>
 
                                     <div class="bg-light p-3 rounded">
-                                        <div class="d-flex justify-content-between mb-2">
-                                            <span>Subtotal:</span>
-                                            <span>@money($this->subtotal)</span>
-                                        </div>
+                                      
                                         @if($descuento > 0)
                                         <div class="d-flex justify-content-between mb-2 text-danger">
                                             <span>Descuento:</span>
                                             <span>-@money($descuento)</span>
                                         </div>
+                                        @if($tasa_cambio && $descuento > 0)
+                                        <div class="d-flex justify-content-between mb-2 text-danger">
+                                            <small class="text-muted">Descuento Bs:</small>
+                                            <small>-Bs. {{ number_format($this->descuentoBolivares, 2, ',', '.') }}</small>
+                                        </div>
                                         @endif
-                                        @if($tasa_cambio)
-                                        <div class="d-flex justify-content-between fw-bold fs-5 mt-2">
+                                        @endif
+                                        
+                                        @if($tasa_cambio != null)
+                                        <div class="d-flex justify-content-between fw-bold fs-5 mt-2 text-success">
                                             <span>Total Bs:</span>
-                                            <span class="text-success">Bs. {{ number_format($this->totalBolivares, 2, ',', '.') }}</span>
+                                            <span>Bs. {{ number_format($this->totalBolivares, 2, ',', '.') }}</span>
                                         </div>
                                         @endif
                                         @if($mostrar_bolivares && $tasa_cambio && !$es_pago_mixto)
@@ -642,7 +655,7 @@
                                             </div>
                                         </div>
                                         @endif
-
+                                        
                                         @if($es_pago_mixto)
                                         <div class="mt-2 pt-2 border-top">
                                             <div class="d-flex justify-content-between mb-1">

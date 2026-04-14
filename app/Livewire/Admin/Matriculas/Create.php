@@ -181,7 +181,7 @@ class Create extends Component
                     'numero_cuota' => 1,
                     'descripcion' => 'Pago único',
                     'monto' => $this->costo,
-                    'fecha_vencimiento' => $this->fecha_matricula
+                    'fecha_vencimiento' => $periodo->start_date
                 ]
             ];
             $this->showSchedule = true;
@@ -194,7 +194,7 @@ class Create extends Component
         // Generar cuotas mensuales
         $this->paymentSchedule = [];
 
-        // Agregar cuota inicial si existe
+        // Agregar cuota inicial
         if ($this->cuota_inicial > 0) {
             $this->paymentSchedule[] = [
                 'numero_cuota' => 0,
@@ -204,24 +204,30 @@ class Create extends Component
             ];
         }
 
-        // Agregar cuotas mensuales a partir de la fecha de matrícula
-        $currentDate = new \DateTime($this->fecha_matricula);
+        // Agregar cuotas distribuidas uniformemente a lo largo del período escolar
+        $startDate = new \DateTime($periodo->start_date);
+        $endDate = new \DateTime($periodo->end_date);
 
-        // Para cada cuota, calcular la fecha de vencimiento mensualmente
+        // Calcular intervalo total en días
+        $totalDays = $startDate->diff($endDate)->days;
+
+        // Para cada cuota, calcular la fecha de vencimiento distribuida uniformemente
         for ($i = 1; $i <= $this->numero_cuotas; $i++) {
-            // Para la primera cuota, usamos la fecha de matrícula
-            if ($i == 1) {
-                $dueDate = new \DateTime($this->fecha_matricula);
+            $dueDate = clone $startDate;
+
+            // Calcular días entre cuotas (distribución uniforme)
+            if ($this->numero_cuotas > 1) {
+                $daysBetweenPayments = floor($totalDays / ($this->numero_cuotas - 1));
+                $dueDate->modify('+' . ($daysBetweenPayments * ($i - 1)) . ' days');
             } else {
-                // Para las demás cuotas, sumamos meses a la fecha base
-                $dueDate = new \DateTime($this->fecha_matricula);
-                $dueDate->modify('+' . ($i - 1) . ' months');
-                
-                // Asegurarnos de que la fecha no exceda la fecha final del período
-                $endDate = new \DateTime($periodo->end_date);
-                if ($dueDate > $endDate) {
-                    $dueDate = clone $endDate;
-                }
+                // Si solo hay una cuota, colocarla a la mitad del período
+                $daysBetweenPayments = floor($totalDays / 2);
+                $dueDate->modify('+' . $daysBetweenPayments . ' days');
+            }
+
+            // Asegurarse de que la fecha no exceda la fecha final
+            if ($dueDate > $endDate) {
+                $dueDate = clone $endDate;
             }
 
             $this->paymentSchedule[] = [

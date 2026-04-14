@@ -36,7 +36,7 @@ class DatabaseSeeder extends Seeder
             TeacherSeeder::class, // Agregar seeder de profesores
             SubjectTeacherSeeder::class, // Asigna profesores a materias
             SerieSeeder::class,
-            MatriculaSeeder::class,
+            //MatriculaSeeder::class,
             SubjectPrerequisitesSeeder::class,  //Agregar prerrequisitos de ejemplo
             EvaluationTypeSeeder::class,
             RecoveryPeriodSeeder::class,
