@@ -292,9 +292,47 @@ class Index extends Component
         //$pdf->Line(10, $pdf->GetY() + 2, 200, $pdf->GetY() + 2);
         $pdf->Ln(22);
 
-        // Obtener tasa de cambio
-        $exchangeRate = ExchangeRate::whereDate('created_at', $pago->created_at)->first();
-        //dd($exchangeRate);
+        // Obtener tasa de cambio - implementar lógica de fallback para siempre mostrar en Bolívares
+        $tasaCambio = null;
+        
+        // Primero intentar usar la tasa de cambio registrada en el pago
+        if ($pago->tasa_cambio) {
+            $tasaCambio = $pago->tasa_cambio;
+        } else {
+            // Si no hay tasa en el pago, buscar en el historial usando la fecha del pago
+            $fechaPago = $pago->fecha ?: $pago->created_at;
+            
+            // Intentar obtener tasa exacta para la fecha del pago
+            $exchangeRate = ExchangeRate::whereDate('date', $fechaPago->format('Y-m-d'))
+                ->whereNotNull('usd_rate')
+                ->first();
+                
+            if ($exchangeRate) {
+                $tasaCambio = $exchangeRate->usd_rate;
+            } else {
+                // Si no hay tasa exacta, buscar la más reciente anterior a esa fecha
+                $tasaMasReciente = ExchangeRate::whereDate('date', '<=', $fechaPago->format('Y-m-d'))
+                    ->whereNotNull('usd_rate')
+                    ->orderBy('date', 'desc')
+                    ->first();
+                    
+                if ($tasaMasReciente) {
+                    $tasaCambio = $tasaMasReciente->usd_rate;
+                } else {
+                    // Si no hay tasas anteriores, buscar la más antigua disponible
+                    $tasaMasAntigua = ExchangeRate::whereNotNull('usd_rate')
+                        ->orderBy('date', 'asc')
+                        ->first();
+                        
+                    if ($tasaMasAntigua) {
+                        $tasaCambio = $tasaMasAntigua->usd_rate;
+                    } else {
+                        // Último recurso: usar tasa por defecto
+                        $tasaCambio = 36.50;
+                    }
+                }
+            }
+        }
 
         // Información del pago (alineada a la izquierda)
         $pdf->SetFont('Arial', 'B', 8);
@@ -330,8 +368,11 @@ class Index extends Component
              $pdf->Cell(0, 5, utf8_decode($student->nombres . ' ' . $student->apellidos.' ('.$student->grado.' - '.$student->seccion.') Representante: '.$student->representante_nombres.' '.$student->representante_apellidos), 0, 1, 'L');
         }
        
-        
-
+        // Mostrar tasa de cambio utilizada
+        $pdf->SetFont('Arial', 'B', 8);
+        $pdf->Cell(30, 5, 'Tasa de cambio:', 0, 0, 'L');
+        $pdf->SetFont('Arial', '', 8);
+        $pdf->Cell(0, 5, number_format($tasaCambio, 4, ',', '.') . ' Bs/$', 0, 1, 'L');
 
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(30, 5, 'Fecha de emision:', 0, 0, 'L');
@@ -348,8 +389,9 @@ class Index extends Component
             foreach ($pago->detalles_pago_mixto as $detalleMixto) {
                 $metodo = ucfirst(str_replace('_', ' ', $detalleMixto['metodo'] ?? ''));
                 $monto = $detalleMixto['monto'] ?? 0;
+                $montoBs = $monto * $tasaCambio;
                 $referencia = $detalleMixto['referencia'] ?? '';
-                $detalles[] = "$metodo: " . number_format($monto, 2, ',', '.') . ($referencia ? " - Ref: $referencia" : "");
+                $detalles[] = "$metodo: Bs. " . number_format($montoBs, 2, ',', '.') . ($referencia ? " - Ref: $referencia" : "");
             }
             $pdf->Cell(0, 5, strtoupper($pago->metodo_pago) . ' (' . implode(' ', $detalles) . ')', 0, 1, 'L');
         } else {
@@ -376,44 +418,28 @@ class Index extends Component
             $pdf->Cell(145, 5, substr($detalle->descripcion, 0, 50), 1, 0);
             $pdf->Cell(25, 5, number_format($detalle->cantidad, 2, ',', '.'), 1, 0, 'R');
 
-            // Convertir monto a bolívares si hay tasa de cambio
+            // Convertir monto a bolívares usando la tasa de cambio
             $monto = $detalle->precio_unitario * $detalle->cantidad;
-            if ($exchangeRate) {
-                $montoBs = $monto * $exchangeRate->usd_rate;
-                $pdf->Cell(25, 5, 'Bs. ' . number_format($montoBs, 2, ',', '.'), 1, 1, 'R');
-            } else {
-                $pdf->Cell(25, 5, '$' . number_format($monto, 2, ',', '.'), 1, 1, 'R');
-            }
+            $montoBs = $monto * $tasaCambio;
+            $pdf->Cell(25, 5, 'Bs. ' . number_format($montoBs, 2, ',', '.'), 1, 1, 'R');
         }
 
         // Totales
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(170, 5, 'Subtotal:', 1, 0, 'R');
-        if ($exchangeRate) {
-            $subtotalBs = $pago->subtotal * $exchangeRate->usd_rate;
-            $pdf->Cell(25, 5, 'Bs. ' . number_format($subtotalBs, 2, ',', '.'), 1, 1, 'R');
-        } else {
-            $pdf->Cell(25, 5, '$' . number_format($pago->subtotal, 2, ',', '.'), 1, 1, 'R');
-        }
+        $subtotalBs = $pago->subtotal * $tasaCambio;
+        $pdf->Cell(25, 5, 'Bs. ' . number_format($subtotalBs, 2, ',', '.'), 1, 1, 'R');
 
         if ($pago->descuento > 0) {
             $pdf->Cell(170, 5, 'Descuento:', 1, 0, 'R');
-            if ($exchangeRate) {
-                $descuentoBs = $pago->descuento * $exchangeRate->usd_rate;
-                $pdf->Cell(25, 5, 'Bs. ' . number_format($descuentoBs, 2, ',', '.'), 1, 1, 'R');
-            } else {
-                $pdf->Cell(25, 5, '$' . number_format($pago->descuento, 2, ',', '.'), 1, 1, 'R');
-            }
+            $descuentoBs = $pago->descuento * $tasaCambio;
+            $pdf->Cell(25, 5, 'Bs. ' . number_format($descuentoBs, 2, ',', '.'), 1, 1, 'R');
         }
 
         $pdf->SetFont('Arial', 'B', 8);
         $pdf->Cell(170, 5, 'Total:', 1, 0, 'R');
-        if ($exchangeRate) {
-            $totalBs = $pago->total * $exchangeRate->usd_rate;
-            $pdf->Cell(25, 5, 'Bs. ' . number_format($totalBs, 2, ',', '.'), 1, 1, 'R');
-        } else {
-            $pdf->Cell(25, 5, '$' . number_format($pago->total, 2, ',', '.'), 1, 1, 'R');
-        }
+        $totalBs = $pago->total * $tasaCambio;
+        $pdf->Cell(25, 5, 'Bs. ' . number_format($totalBs, 2, ',', '.'), 1, 1, 'R');
 
         // Firma
         $pdf->Ln(4);
