@@ -38,20 +38,16 @@ return [
 
         'whatsapp_api' => [
             'driver' => 'mysql',
-            'host' => '158.69.175.224',
-            'port' => '3306',
-            'database' => 'mijveapi',
-            'username' => 'root',
-            'password' => 'AdaThei04112023*',
+            'host' => env('DB_APIHOST', '127.0.0.1'),
+            'port' => env('DB_APIPORT', '3306'),
+            'database' => env('DB_APIDATABASE', 'larawhatsapp'),
+            'username' => env('DB_APIUSERNAME', 'root'),
+            'password' => env('DB_APIPASSWORD', ''),
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
-            'strict' => false,
+            'strict' => true,
             'engine' => null,
-            'options' => [
-                PDO::ATTR_TIMEOUT => 5,
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            ],
         ],
 
         'mariadb' => [
