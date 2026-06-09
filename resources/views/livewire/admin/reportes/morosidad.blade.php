@@ -42,7 +42,7 @@
                 wire:loading.attr="disabled"
                 wire:loading.class="opacity-50"
                 class="btn btn-success me-2"
-                @if(count($morosos) == 0) disabled @endif
+                @if(count($morosos) == 0 && count($solventes) == 0) disabled @endif
             >
                 <span wire:loading.remove wire:target="exportarExcel">
                     <i class="ri ri-file-excel-line me-1"></i> Exportar Excel
@@ -52,12 +52,10 @@
                     Exportando...
                 </span>
             </button>
-            <button wire:click="exportarPDF" class="btn btn-danger me-2" @if(count($morosos) == 0) disabled @endif>
+            <button wire:click="exportarPDF" class="btn btn-danger me-2" @if(count($morosos) == 0 && count($solventes) == 0) disabled @endif>
                 <i class="ri ri-file-pdf-line me-1"></i> Exportar PDF
             </button>
-            <button wire:click="enviarNotificaciones" class="btn btn-warning" @if(count($morosos) == 0) disabled @endif>
-                <i class="ri ri-notification-line me-1"></i> Enviar Notificaciones
-            </button>
+
         </div>
     </div>
 
@@ -147,115 +145,231 @@
         </div>
     @endif
 
-    @if(count($morosos) > 0)
+    @if((count($morosos) > 0 || count($solventes) > 0))
+        <!-- Tabs -->
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Estudiantes Morosos</h5>
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button
+                            wire:click="$set('activeTab', 'morosos')"
+                            class="nav-link {{ $activeTab === 'morosos' ? 'active' : '' }}"
+                            type="button"
+                            role="tab"
+                        >
+                            <i class="ri ri-error-warning-line me-1"></i>
+                            Morosos ({{ count($morosos) }})
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button
+                            wire:click="$set('activeTab', 'solventes')"
+                            class="nav-link {{ $activeTab === 'solventes' ? 'active' : '' }}"
+                            type="button"
+                            role="tab"
+                        >
+                            <i class="ri ri-checkbox-circle-line me-1"></i>
+                            Solventes ({{ count($solventes) }})
+                        </button>
+                    </li>
+                </ul>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th wire:click="sortBy('estudiante_id')" style="cursor: pointer;">
-                                    Estudiante
-                                    @if($sortBy === 'estudiante_id') 
-                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
-                                    @endif
-                                </th>
-                                <th>Programa</th>
-                                <th>Nivel</th>
-                                <th>Estado</th>
-                                <th class="text-end">Cuotas</th>
-                                <th class="text-end" wire:click="sortBy('costo_rango')" style="cursor: pointer;">
-                                    Costo (Rango)
-                                    @if($sortBy === 'costo_rango') 
-                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
-                                    @endif
-                                </th>
-                                <th class="text-end" wire:click="sortBy('pagado_rango')" style="cursor: pointer;">
-                                    Pagado (Rango)
-                                    @if($sortBy === 'pagado_rango') 
-                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
-                                    @endif
-                                </th>
-                                <th class="text-end" wire:click="sortBy('saldo_pendiente_rango')" style="cursor: pointer;">
-                                    Pendiente (Rango)
-                                    @if($sortBy === 'saldo_pendiente_rango') 
-                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
-                                    @endif
-                                </th>
-                                <th class="text-end" wire:click="sortBy('porcentaje_pagado_rango')" style="cursor: pointer;">
-                                    % Pagado (Rango)
-                                    @if($sortBy === 'porcentaje_pagado_rango') 
-                                        <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
-                                    @endif
-                                </th>
-                                <th>Riesgo</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($morosos as $moroso)
-                                <tr>
-                                    <td>{{ $moroso['estudiante_nombre'] }}</td>
-                                    <td>{{ $moroso['programa_nombre'] }}</td>
-                                    <td>{{ $moroso['nivel_nombre'] }}</td>
-                                    <td>
-                                        <span class="badge 
-                                            @if($moroso['estado'] === 'Al día') bg-success 
-                                            @elseif($moroso['estado'] === 'Pendiente') bg-warning 
-                                            @else bg-danger 
-                                            @endif">
-                                            {{ $moroso['estado'] }}
-                                        </span>
-                                    </td>
-                                    <td class="text-end">{{ $moroso['cantidad_cuotas'] }}</td>
-                                    <td class="text-end"><x-dual-currency :amount="$moroso['costo_rango']" /></td>
-                                    <td class="text-end"><x-dual-currency :amount="$moroso['pagado_rango']" /></td>
-                                    <td class="text-end"><x-dual-currency :amount="$moroso['saldo_pendiente_rango']" /></td>
-                                    <td class="text-end">{{ number_format($moroso['porcentaje_pagado_rango'], 2) }}%</td>
-                                    <td>
-                                        @if($moroso['porcentaje_pagado_rango'] < 30)
-                                            <span class="badge bg-danger">Alto Riesgo</span>
-                                        @elseif($moroso['porcentaje_pagado_rango'] < 60)
-                                            <span class="badge bg-warning">Medio Riesgo</span>
-                                        @else
-                                            <span class="badge bg-info">Bajo Riesgo</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center">
-                                        <button 
-                                            wire:click="mostrarDetalleDeuda({{ $moroso['id'] }})"
-                                            class="btn btn-sm btn-outline-primary"
-                                            title="Ver detalles"
-                                        >
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        @if(config('whatsapp.active'))
-                                        <button 
-                                            wire:click="enviarNotificacion({{ $moroso['id'] }})"
-                                            class="btn btn-sm btn-outline-success ms-1"
-                                            title="Enviar notificación por WhatsApp"
-                                            @if($whatsappStatus !== 'connected') disabled @endif
-                                        >
-                                            <i class="fab fa-whatsapp"></i>
-                                        </button>
-                                        @endif
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    @elseif(isset($totales) && isset($totales['total_estudiantes']) && $totales['total_estudiantes'] > 0)
-        <div class="card">
-            <div class="card-body text-center py-5">
-                <i class="ri ri-checkbox-circle-line ri-3x text-success mb-3"></i>
-                <h5 class="mb-2">¡Excelente!</h5>
-                <p class="text-muted mb-0">No se encontraron estudiantes morosos con los filtros aplicados</p>
+                <!-- Tab Morosos -->
+                @if($activeTab === 'morosos')
+                    @if(count($morosos) > 0)
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th wire:click="$set('sortBy', 'estudiante_id'); $set('sortDirection', $sortBy === 'estudiante_id' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            Estudiante
+                                            @if($sortBy === 'estudiante_id')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th>Programa</th>
+                                        <th>Nivel</th>
+                                        <th>Estado</th>
+                                        <th class="text-end">Cuotas</th>
+                                        <th class="text-end" wire:click="$set('sortBy', 'costo_rango'); $set('sortDirection', $sortBy === 'costo_rango' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            Costo (Rango)
+                                            @if($sortBy === 'costo_rango')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th class="text-end" wire:click="$set('sortBy', 'pagado_rango'); $set('sortDirection', $sortBy === 'pagado_rango' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            Pagado (Rango)
+                                            @if($sortBy === 'pagado_rango')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th class="text-end" wire:click="$set('sortBy', 'saldo_pendiente_rango'); $set('sortDirection', $sortBy === 'saldo_pendiente_rango' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            Pendiente (Rango)
+                                            @if($sortBy === 'saldo_pendiente_rango')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th class="text-end" wire:click="$set('sortBy', 'porcentaje_pagado_rango'); $set('sortDirection', $sortBy === 'porcentaje_pagado_rango' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            % Pagado (Rango)
+                                            @if($sortBy === 'porcentaje_pagado_rango')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th>Riesgo</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($morosos as $moroso)
+                                        <tr>
+                                            <td>{{ $moroso['estudiante_nombre'] }}</td>
+                                            <td>{{ $moroso['programa_nombre'] }}</td>
+                                            <td>{{ $moroso['nivel_nombre'] }}</td>
+                                            <td>
+                                                <span class="badge bg-danger">
+                                                    {{ $moroso['estado'] }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">{{ $moroso['cantidad_cuotas'] }}</td>
+                                            <td class="text-end"><x-dual-currency :amount="$moroso['costo_rango']" /></td>
+                                            <td class="text-end"><x-dual-currency :amount="$moroso['pagado_rango']" /></td>
+                                            <td class="text-end"><x-dual-currency :amount="$moroso['saldo_pendiente_rango']" /></td>
+                                            <td class="text-end">{{ number_format($moroso['porcentaje_pagado_rango'], 2) }}%</td>
+                                            <td>
+                                                @if($moroso['porcentaje_pagado_rango'] < 30)
+                                                    <span class="badge bg-danger">Alto Riesgo</span>
+                                                @elseif($moroso['porcentaje_pagado_rango'] < 60)
+                                                    <span class="badge bg-warning">Medio Riesgo</span>
+                                                @else
+                                                    <span class="badge bg-info">Bajo Riesgo</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                <button
+                                                    wire:click="mostrarDetalleDeuda({{ $moroso['id'] }})"
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    title="Ver detalles"
+                                                >
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                @if(config('whatsapp.active'))
+                                                <button
+                                                    wire:click="enviarNotificacion({{ $moroso['id'] }})"
+                                                    class="btn btn-sm btn-outline-success ms-1"
+                                                    title="Enviar notificación por WhatsApp"
+                                                    @if($whatsappStatus !== 'connected') disabled @endif
+                                                >
+                                                    <i class="fab fa-whatsapp"></i>
+                                                </button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <i class="ri ri-checkbox-circle-line ri-3x text-success mb-3"></i>
+                            <h5 class="mb-2">¡Excelente!</h5>
+                            <p class="text-muted mb-0">No se encontraron estudiantes morosos con los filtros aplicados</p>
+                        </div>
+                    @endif
+                @endif
+
+                <!-- Tab Solventes -->
+                @if($activeTab === 'solventes')
+                    @if(count($solventes) > 0)
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th wire:click="$set('sortBy', 'estudiante_id'); $set('sortDirection', $sortBy === 'estudiante_id' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            Estudiante
+                                            @if($sortBy === 'estudiante_id')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th>Programa</th>
+                                        <th>Nivel</th>
+                                        <th>Estado</th>
+                                        <th class="text-end">Cuotas</th>
+                                        <th class="text-end" wire:click="$set('sortBy', 'costo_rango'); $set('sortDirection', $sortBy === 'costo_rango' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            Costo (Rango)
+                                            @if($sortBy === 'costo_rango')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th class="text-end" wire:click="$set('sortBy', 'pagado_rango'); $set('sortDirection', $sortBy === 'pagado_rango' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            Pagado (Rango)
+                                            @if($sortBy === 'pagado_rango')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th class="text-end" wire:click="$set('sortBy', 'saldo_pendiente_rango'); $set('sortDirection', $sortBy === 'saldo_pendiente_rango' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            Pendiente (Rango)
+                                            @if($sortBy === 'saldo_pendiente_rango')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th class="text-end" wire:click="$set('sortBy', 'porcentaje_pagado_rango'); $set('sortDirection', $sortBy === 'porcentaje_pagado_rango' && $sortDirection === 'asc' ? 'desc' : 'asc')" style="cursor: pointer;">
+                                            % Pagado (Rango)
+                                            @if($sortBy === 'porcentaje_pagado_rango')
+                                                <i class="ri ri-arrow-{{ $sortDirection === 'asc' ? 'up' : 'down' }}-line"></i>
+                                            @endif
+                                        </th>
+                                        <th>Riesgo</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($solventes as $solvente)
+                                        <tr>
+                                            <td>{{ $solvente['estudiante_nombre'] }}</td>
+                                            <td>{{ $solvente['programa_nombre'] }}</td>
+                                            <td>{{ $solvente['nivel_nombre'] }}</td>
+                                            <td>
+                                                <span class="badge bg-success">
+                                                    {{ $solvente['estado'] }}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">{{ $solvente['cantidad_cuotas'] }}</td>
+                                            <td class="text-end"><x-dual-currency :amount="$solvente['costo_rango']" /></td>
+                                            <td class="text-end"><x-dual-currency :amount="$solvente['pagado_rango']" /></td>
+                                            <td class="text-end"><x-dual-currency :amount="$solvente['saldo_pendiente_rango']" /></td>
+                                            <td class="text-end">{{ number_format($solvente['porcentaje_pagado_rango'], 2) }}%</td>
+                                            <td>
+                                                @if($solvente['porcentaje_pagado_rango'] < 30)
+                                                    <span class="badge bg-danger">Alto Riesgo</span>
+                                                @elseif($solvente['porcentaje_pagado_rango'] < 60)
+                                                    <span class="badge bg-warning">Medio Riesgo</span>
+                                                @else
+                                                    <span class="badge bg-info">Bajo Riesgo</span>
+                                                @endif
+                                            </td>
+                                            <td class="text-center">
+                                                <button
+                                                    wire:click="mostrarDetalleDeuda({{ $solvente['id'] }})"
+                                                    class="btn btn-sm btn-outline-primary"
+                                                    title="Ver detalles"
+                                                >
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5">
+                            <i class="ri ri-search-eye-line ri-3x text-muted mb-3"></i>
+                            <h5 class="mb-2">Sin datos</h5>
+                            <p class="text-muted mb-0">No se encontraron estudiantes solventes con los filtros aplicados</p>
+                        </div>
+                    @endif
+                @endif
             </div>
         </div>
     @else

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\Multitenantable;
@@ -12,7 +13,7 @@ use Spatie\Activitylog\LogOptions;
 
 class Matricula extends Model
 {
-    use HasFactory, Multitenantable, LogsActivity;
+    use HasFactory, Multitenantable, LogsActivity, SoftDeletes;
 
     protected $fillable = [
         'empresa_id',
@@ -36,6 +37,7 @@ class Matricula extends Model
         'costo' => 'decimal:2',
         'cuota_inicial' => 'decimal:2',
         'solvente' => 'boolean',
+        'deleted_at' => 'datetime',
     ];
 
     protected $attributes = [

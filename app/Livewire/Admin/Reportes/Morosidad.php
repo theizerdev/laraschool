@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Log;
 use App\Mail\DebtNotification;
 use App\Services\WhatsAppService;
 use App\Services\MorosidadCalculationService;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class Morosidad extends Component
 {
@@ -29,6 +30,7 @@ class Morosidad extends Component
     public $fecha_desde;
     public $fecha_hasta;
     public $morosos = [];
+    public $solventes = [];
     public $totales = [];
     public $detalleDeuda = [];
     public $mostrarModal = false;
@@ -36,6 +38,7 @@ class Morosidad extends Component
     public $whatsappStatus = 'disconnected';
     public $sortBy  = 'estudiante_id';
     public $sortDirection  = 'asc';
+    public $activeTab = 'morosos'; // 'morosos' o 'solventes'
 
     protected MorosidadCalculationService $morosidadCalculationService;
 
@@ -100,19 +103,27 @@ class Morosidad extends Component
         $fechaDesde = $this->fecha_desde ?: null;
         $fechaHasta = $this->fecha_hasta ?: null;
 
-        $morososData = $this->morosidadCalculationService->calculateMorosidadData(
+        $allData = $this->morosidadCalculationService->calculateMorosidadData(
             $matriculas,
             $fechaDesde,
             $fechaHasta
         );
 
+        // Separar en morosos y solventes
+        $morososData = collect($allData)->filter(function ($item) {
+            return isset($item['estado']) && strtolower($item['estado']) === 'moroso';
+        });
+
+        $solventesData = collect($allData)->filter(function ($item) {
+            return isset($item['estado']) && strtolower($item['estado']) !== 'moroso';
+        });
+
         // Aplicar ordenamiento
-        $sortedData = collect($morososData)->sortBy([[$this->sortBy, $this->sortDirection]]);
+        $this->morosos = $morososData->sortBy([[$this->sortBy, $this->sortDirection]])->values()->toArray();
+        $this->solventes = $solventesData->sortBy([[$this->sortBy, $this->sortDirection]])->values()->toArray();
 
-        $this->morosos = $sortedData->values()->toArray();
-
-        // Calcular totales usando el servicio
-        $this->totales = $this->morosidadCalculationService->calculateTotals($this->morosos);
+        // Calcular totales usando el servicio (para todos los estudiantes)
+        $this->totales = $this->morosidadCalculationService->calculateTotals($allData);
     }
 
     public function mostrarDetalleDeuda($matriculaId)
@@ -147,6 +158,12 @@ class Morosidad extends Component
                 return $cuota->fecha_vencimiento->gte($fechaDesde);
             });
         }
+
+        // FILTRAR SOLO CUOTAS CON MOROSIDAD (no pagadas completamente)
+        $cuotas = $cuotas->filter(function ($cuota) {
+            $montoPagado = $cuota->monto_pagado ?? 0;
+            return $montoPagado < $cuota->monto; // Solo incluir si no está completamente pagada
+        });
 
         $this->detalleDeuda = $cuotas;
         $this->mostrarModal = true;
@@ -279,23 +296,59 @@ class Morosidad extends Component
             return;
         }
 
-        // Crear mensaje de morosidad
-        $saldoPendiente = ($this->estudianteSeleccionado->costo ?? 0) - $this->estudianteSeleccionado->pagos->sum('total');
-        $mensaje = $this->generarMensajeMorosidad($estudiante, $saldoPendiente, $esMayorDeEdad);
-
-        // Formatear teléfono según el país de la empresa
-        $telefonoFormateado = $this->formatPhoneNumber($telefono);
-        //dd($telefonoFormateado);
+        // Generar PDF del detalle de deuda
         try {
-            $whatsappService = app(WhatsAppService::class);
-            $result = $whatsappService->sendMessage($telefonoFormateado, $mensaje);
-            if ($result && ($result['success'] ?? false)) {
-                session()->flash('success', 'Mensaje de WhatsApp enviado correctamente a ' . $nombreDestino);
-            } else {
-                session()->flash('error', 'Error al enviar el mensaje de WhatsApp.');
+            $pdfPath = $this->generarPDFDeudaIndividual($estudiante, $this->estudianteSeleccionado);
+
+            if (!$pdfPath) {
+                session()->flash('error', 'Error al generar el documento PDF.');
+                return;
             }
+
+            // Crear mensaje de texto resumido
+            $saldoPendiente = ($this->estudianteSeleccionado->costo ?? 0) - $this->estudianteSeleccionado->pagos->sum('total');
+            $mensajeResumen = $this->generarMensajeResumenMorosidad($estudiante, $saldoPendiente, $esMayorDeEdad);
+
+            // Formatear teléfono según el país de la empresa
+            $telefonoFormateado = $this->formatPhoneNumber($telefono);
+
+            try {
+                $whatsappService = app(WhatsAppService::class);
+
+                // Enviar mensaje de texto primero
+                $resultText = $whatsappService->sendMessage($telefonoFormateado, $mensajeResumen);
+
+                // Luego enviar el PDF como documento
+                if ($resultText && ($resultText['success'] ?? false)) {
+                    $resultPDF = $whatsappService->sendDocument(
+                        $telefonoFormateado,
+                        $pdfPath,
+                        'Detalle de Deuda - U.E VARGAS II'
+                    );
+
+                    if ($resultPDF && ($resultPDF['success'] ?? false)) {
+                        session()->flash('success', 'Notificación enviada correctamente a ' . $nombreDestino . ' (Mensaje + PDF adjunto)');
+                    } else {
+                        session()->flash('warning', 'Mensaje enviado pero hubo un problema al adjuntar el PDF.');
+                    }
+                } else {
+                    session()->flash('error', 'Error al enviar el mensaje de WhatsApp.');
+                }
+            } catch (\Exception $e) {
+                session()->flash('error', 'Error al enviar mensaje: ' . $e->getMessage());
+            }
+
+            // Eliminar el archivo PDF temporal después de enviarlo
+            if (file_exists($pdfPath)) {
+                unlink($pdfPath);
+            }
+
         } catch (\Exception $e) {
-            session()->flash('error', 'Error al enviar mensaje: ' . $e->getMessage());
+            \Log::error('Error enviando WhatsApp con PDF', [
+                'error' => $e->getMessage(),
+                'estudiante_id' => $estudiante->id
+            ]);
+            session()->flash('error', 'Error al procesar la notificación: ' . $e->getMessage());
         }
     }
 
@@ -305,7 +358,7 @@ class Morosidad extends Component
         $saldoFormateado = '$' . number_format($saldoPendiente, 2, ',', '.');
 
         if ($esMayorDeEdad) {
-            $mensaje = "🔔 *Recordatorio de Pago - U.E VARGAS II*\n\n";
+            $mensaje = " *Recordatorio de Pago - U.E VARGAS II*\n\n";
             $mensaje .= "Estimado/a {$nombreEstudiante},\n\n";
             $mensaje .= "Le recordamos que tiene un saldo pendiente de *{$saldoFormateado}* en su matrícula.\n\n";
         } else {
@@ -315,11 +368,21 @@ class Morosidad extends Component
             $mensaje .= "Le recordamos que el estudiante *{$nombreEstudiante}* tiene un saldo pendiente de *{$saldoFormateado}* en su matrícula.\n\n";
         }
 
-        $mensaje .= "📅 *Cuotas vencidas:*\n";
+        $mensaje .= "📅 *Detalle de cuotas pendientes:*\n";
         foreach ($this->detalleDeuda as $cuota) {
             $fechaVencimiento = \Carbon\Carbon::parse($cuota->fecha_vencimiento)->format('d/m/Y');
             $montoCuota = '$' . number_format($cuota->monto, 2, ',', '.');
-            $mensaje .= "• {$cuota->descripcion}: {$montoCuota} (Vence: {$fechaVencimiento})\n";
+            $montoPagado = $cuota->monto_pagado ?? 0;
+
+            // Si hay abono parcial, mostrarlo
+            if ($montoPagado > 0) {
+                $montoAbonado = '$' . number_format($montoPagado, 2, ',', '.');
+                $montoRestante = '$' . number_format($cuota->monto - $montoPagado, 2, ',', '.');
+                $mensaje .= "• {$cuota->descripcion} (Vence: {$fechaVencimiento})\n";
+                $mensaje .= "   Monto: {$montoCuota} | Abonado: {$montoAbonado} | Restante: {$montoRestante}\n";
+            } else {
+                $mensaje .= "• {$cuota->descripcion}: {$montoCuota} (Vence: {$fechaVencimiento})\n";
+            }
         }
 
         $mensaje .= "\n💳 Para realizar su pago, puede acercarse a nuestras oficinas o contactarnos.\n\n";
@@ -327,6 +390,91 @@ class Morosidad extends Component
         $mensaje .= "*U.E VARGAS II*";
 
         return $mensaje;
+    }
+
+    /**
+     * Genera un mensaje resumen corto para WhatsApp
+     */
+    private function generarMensajeResumenMorosidad($estudiante, $saldoPendiente, $esMayorDeEdad)
+    {
+        $nombreEstudiante = $estudiante->nombres . ' ' . $estudiante->apellidos;
+        $saldoFormateado = '$' . number_format($saldoPendiente, 2, ',', '.');
+
+        if ($esMayorDeEdad) {
+            $mensaje = "🔔 *Recordatorio de Pago - U.E VARGAS II*\n\n";
+            $mensaje .= "Estimado/a {$nombreEstudiante},\n\n";
+            $mensaje .= "Tiene un saldo pendiente de *{$saldoFormateado}*\n\n";
+        } else {
+            $representante = $estudiante->representante_nombres . ' ' . $estudiante->representante_apellidos;
+            $mensaje = " *Recordatorio de Pago - U.E VARGAS II*\n\n";
+            $mensaje .= "Estimado/a {$representante},\n\n";
+            $mensaje .= "El estudiante *{$nombreEstudiante}* tiene saldo pendiente de *{$saldoFormateado}*\n\n";
+        }
+
+        $mensaje .= "📄 Adjuntamos documento PDF con el detalle completo de sus cuotas pendientes.\n\n";
+        $mensaje .= "Por favor, revise el documento adjunto para ver:\n";
+        $mensaje .= "✅ Detalle de cada cuota\n";
+        $mensaje .= "✅ Montos abonados\n";
+        $mensaje .= "✅ Saldo restante por pagar\n\n";
+        $mensaje .= "💳 Regularice su situación financiera a la brevedad.\n\n";
+        $mensaje .= "*U.E VARGAS II*";
+
+        return $mensaje;
+    }
+
+    /**
+     * Genera PDF individual del detalle de deuda
+     */
+    private function generarPDFDeudaIndividual($estudiante, $matricula)
+    {
+        try {
+            // Calcular totales
+            $costoTotal = $this->detalleDeuda->sum('monto');
+            $totalPagado = $this->detalleDeuda->sum('monto_pagado');
+            $saldoPendiente = $costoTotal - $totalPagado;
+
+            // Obtener tasa de cambio actual (si existe)
+            $tasaCambio = \App\Models\ExchangeRate::getLatestRate('USD') ?? 565; // Valor por defecto si no hay tasa activa
+
+            // Determinar si es mayor de edad
+            $esMayorDeEdad = $estudiante->fecha_nacimiento &&
+                             $estudiante->fecha_nacimiento->age >= 18;
+
+            $data = [
+                'estudiante' => $estudiante,
+                'matricula' => $matricula,
+                'cuotas' => $this->detalleDeuda,
+                'costoTotal' => $costoTotal,
+                'totalPagado' => $totalPagado,
+                'saldoPendiente' => $saldoPendiente,
+                'tasaCambio' => $tasaCambio,
+                'esMayorDeEdad' => $esMayorDeEdad
+            ];
+
+            // Generar PDF
+            $pdf = Pdf::loadView('admin.reportes.detalle-deuda-individual', $data);
+
+            // Guardar en storage temporal
+            $filename = 'deuda_' . $estudiante->id . '_' . time() . '.pdf';
+            $path = storage_path('app/temp/' . $filename);
+
+            // Crear directorio si no existe
+            if (!file_exists(storage_path('app/temp'))) {
+                mkdir(storage_path('app/temp'), 0755, true);
+            }
+
+            // Guardar archivo
+            file_put_contents($path, $pdf->output());
+
+            return $path;
+
+        } catch (\Exception $e) {
+            \Log::error('Error generando PDF de deuda individual', [
+                'error' => $e->getMessage(),
+                'estudiante_id' => $estudiante->id
+            ]);
+            return null;
+        }
     }
 
     private function formatPhoneNumber($number)
@@ -353,7 +501,7 @@ class Morosidad extends Component
         return $codigoPais . $cleaned;
     }
 
-    public function exportarExcel()
+       public function exportarExcel()
     {
         if (count($this->morosos) == 0) {
             session()->flash('error', 'No hay datos de morosidad para exportar.');
@@ -361,91 +509,46 @@ class Morosidad extends Component
         }
 
         try {
+            // 1. Separar los datos en Morosos y Solventes
+            // Ajusta el valor 'Moroso' y 'Solvente' según el nombre exacto que genere tu calculateEstado
+            $datosMorosos = collect($this->morosos)->filter(function ($item) {
+                return isset($item['estado']) && strtolower($item['estado']) === 'moroso';
+            });
+
+            $datosSolventes = collect($this->morosos)->filter(function ($item) {
+                return isset($item['estado']) && strtolower($item['estado']) !== 'moroso';
+            });
+
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-            $sheet = $spreadsheet->getActiveSheet();
-            $sheet->setTitle('Reporte de Morosidad');
 
-            // Encabezado principal
-            $sheet->setCellValue('A1', 'REPORTE DE MOROSIDAD');
-            $sheet->mergeCells('A1:H1');
-            $sheet->getStyle('A1')->applyFromArray([
-                'font' => ['bold' => true, 'size' => 18, 'color' => ['rgb' => 'DC3545']],
-                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
-                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'color' => ['rgb' => 'F8F9FA']]
-            ]);
-
-            // Información del reporte
-            $sheet->setCellValue('A3', 'Fecha de generación:');
-            $sheet->setCellValue('B3', now()->format('d/m/Y H:i:s'));
-            $sheet->setCellValue('A4', 'Rango de fechas:');
-            $rangoFechas = ($this->fecha_desde ? \Carbon\Carbon::parse($this->fecha_desde)->format('d/m/Y') : 'Inicio') .
-                          ' - ' .
-                          ($this->fecha_hasta ? \Carbon\Carbon::parse($this->fecha_hasta)->format('d/m/Y') : 'Hoy');
-            $sheet->setCellValue('B4', $rangoFechas);
-            $sheet->setCellValue('A5', 'Total estudiantes:');
-            $sheet->setCellValue('B5', $this->totales['total_estudiantes']);
-            $sheet->setCellValue('D3', 'Total morosos:');
-            $sheet->setCellValue('E3', $this->totales['total_morosos']);
-            $sheet->setCellValue('D4', 'Porcentaje morosidad:');
-            $sheet->setCellValue('E4', number_format($this->totales['porcentaje_morosidad'], 2) . '%');
-
-            $sheet->getStyle('A3:A5')->getFont()->setBold(true);
-            $sheet->getStyle('D3:D4')->getFont()->setBold(true);
-            $sheet->getStyle('E3:E4')->getFont()->setBold(true)->getColor()->setRGB('DC3545');
-
-            // Encabezados de la tabla
-            $headers = ['Estudiante', 'Documento', 'Programa', 'Nivel', 'Turno', 'Estado', 'Cantidad de Cuotas', 'Costo Total (Rango)', 'Total Pagado (Rango)', 'Saldo Pendiente (Rango)', '% Pagado (Rango)'];
-            foreach ($headers as $index => $header) {
-                $column = chr(65 + $index);
-                $sheet->setCellValue($column . '7', $header);
-            }
-
-            $sheet->getStyle('A7:K7')->applyFromArray([
+            // Definir estilos reutilizables
+            $headerStyleMorosos = [
                 'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'color' => ['rgb' => 'DC3545']],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'color' => ['rgb' => 'DC3545']], // Rojo
                 'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
                 'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]
-            ]);
+            ];
 
-            // Datos de morosos
-            $row = 8;
-            foreach ($this->morosos as $moroso) {
-                $sheet->setCellValue('A' . $row, $moroso['estudiante_nombre']);
-                $sheet->setCellValue('B' . $row, $moroso['matricula']->estudiante->documento_identidad ?? 'N/A');
-                $sheet->setCellValue('C' . $row, $moroso['programa_nombre']);
-                $sheet->setCellValue('D' . $row, $moroso['nivel_nombre']);
-                $sheet->setCellValue('E' . $row, $moroso['turno_nombre']);
-                $sheet->setCellValue('F' . $row, $moroso['estado']);
-                $sheet->setCellValue('G' . $row, $moroso['cantidad_cuotas']); // Cuotas pendientes
-                $sheet->setCellValue('H' . $row, $moroso['costo_rango']);
-                $sheet->setCellValue('I' . $row, $moroso['pagado_rango']);
-                $sheet->setCellValue('J' . $row, $moroso['saldo_pendiente_rango']);
-                $sheet->setCellValue('K' . $row, $moroso['porcentaje_pagado_rango'] / 100);
-                $row++;
-            }
+            $headerStyleSolventes = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'color' => ['rgb' => '28A745']], // Verde
+                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+                'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]
+            ];
 
-            // Formato de la tabla
-            $rangeData = 'A8:K' . ($row - 1);
-            $sheet->getStyle($rangeData)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
-            $sheet->getStyle('H8:J' . ($row - 1))->getNumberFormat()->setFormatCode('$#,##0.00');
-            $sheet->getStyle('K8:K' . ($row - 1))->getNumberFormat()->setFormatCode('0.00%');
+            // 2. Generar Pestaña de MOROSOS
+            $sheetMorosos = $spreadsheet->getActiveSheet();
+            $sheetMorosos->setTitle('Morosos');
+            $this->generarContenidoHoja($sheetMorosos, $datosMorosos, 'REPORTE DE MOROSIDAD', $headerStyleMorosos, 'DC3545');
 
-            // Configuración de columnas
-            $sheet->getColumnDimension('A')->setWidth(30);
-            $sheet->getColumnDimension('B')->setWidth(15);
-            $sheet->getColumnDimension('C')->setWidth(25);
-            $sheet->getColumnDimension('D')->setWidth(20);
-            $sheet->getColumnDimension('E')->setWidth(15);
-            $sheet->getColumnDimension('F')->setWidth(15);
-            $sheet->getColumnDimension('G')->setWidth(15);
-            $sheet->getColumnDimension('H')->setWidth(18);
-            $sheet->getColumnDimension('I')->setWidth(18);
-            $sheet->getColumnDimension('J')->setWidth(18);
-            $sheet->getColumnDimension('K')->setWidth(15);
+            // 3. Generar Pestaña de SOLVENTES
+            $sheetSolventes = $spreadsheet->createSheet();
+            $sheetSolventes->setTitle('Solventes');
+            $this->generarContenidoHoja($sheetSolventes, $datosSolventes, 'REPORTE DE SOLVENTES', $headerStyleSolventes, '28A745');
 
             $filename = 'reporte_morosidad_' . now()->format('Y-m-d') . '.xlsx';
 
-            session()->flash('success', 'Archivo Excel generado correctamente.');
+            session()->flash('success', 'Archivo Excel generado correctamente con pestañas separadas.');
 
             return new \Symfony\Component\HttpFoundation\StreamedResponse(
                 function () use ($spreadsheet) {
@@ -464,6 +567,82 @@ class Morosidad extends Component
             session()->flash('error', 'Error al generar el archivo Excel: ' . $e->getMessage());
             return;
         }
+    }
+
+    /**
+     * Función auxiliar para no repetir el código de dibujado de tablas en Excel
+     */
+    private function generarContenidoHoja($sheet, $datos, $titulo, $headerStyle, $colorEstado)
+    {
+        // Encabezado principal
+        $sheet->setCellValue('A1', $titulo);
+        $sheet->mergeCells('A1:K1'); // Ajustado a K por las 11 columnas
+        $sheet->getStyle('A1')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 18, 'color' => ['rgb' => $colorEstado]],
+            'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'color' => ['rgb' => 'F8F9FA']]
+        ]);
+
+        // Información del reporte
+        $sheet->setCellValue('A3', 'Fecha de generación:');
+        $sheet->setCellValue('B3', now()->format('d/m/Y H:i:s'));
+        $sheet->setCellValue('A4', 'Rango de fechas:');
+        $rangoFechas = ($this->fecha_desde ? \Carbon\Carbon::parse($this->fecha_desde)->format('d/m/Y') : 'Inicio') .
+                      ' - ' .
+                      ($this->fecha_hasta ? \Carbon\Carbon::parse($this->fecha_hasta)->format('d/m/Y') : 'Hoy');
+        $sheet->setCellValue('B4', $rangoFechas);
+        $sheet->setCellValue('A5', 'Total registros:');
+        $sheet->setCellValue('B5', $datos->count());
+
+        $sheet->getStyle('A3:A5')->getFont()->setBold(true);
+
+        // Encabezados de la tabla
+        $headers = ['Estudiante', 'Documento', 'Programa', 'Nivel', 'Turno', 'Estado', 'Cantidad de Cuotas', 'Costo Total (Rango)', 'Total Pagado (Rango)', 'Saldo Pendiente (Rango)', '% Pagado (Rango)'];
+
+        foreach ($headers as $index => $header) {
+            $column = chr(65 + $index);
+            $sheet->setCellValue($column . '7', $header);
+        }
+
+        $sheet->getStyle('A7:K7')->applyFromArray($headerStyle);
+
+        // Datos
+        $row = 8;
+        foreach ($datos as $moroso) {
+            $sheet->setCellValue('A' . $row, $moroso['estudiante_nombre']);
+            $sheet->setCellValue('B' . $row, $moroso['matricula']->estudiante->documento_identidad ?? 'N/A');
+            $sheet->setCellValue('C' . $row, $moroso['programa_nombre']);
+            $sheet->setCellValue('D' . $row, $moroso['nivel_nombre']);
+            $sheet->setCellValue('E' . $row, $moroso['turno_nombre']);
+            $sheet->setCellValue('F' . $row, $moroso['estado']);
+            $sheet->setCellValue('G' . $row, $moroso['cantidad_cuotas']);
+            $sheet->setCellValue('H' . $row, $moroso['costo_rango']);
+            $sheet->setCellValue('I' . $row, $moroso['pagado_rango']);
+            $sheet->setCellValue('J' . $row, $moroso['saldo_pendiente_rango']);
+            $sheet->setCellValue('K' . $row, $moroso['porcentaje_pagado_rango'] / 100);
+            $row++;
+        }
+
+        // Formato de la tabla (solo si hay datos)
+        if ($row > 8) {
+            $rangeData = 'A8:K' . ($row - 1);
+            $sheet->getStyle($rangeData)->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+            $sheet->getStyle('H8:J' . ($row - 1))->getNumberFormat()->setFormatCode('$#,##0.00');
+            $sheet->getStyle('K8:K' . ($row - 1))->getNumberFormat()->setFormatCode('0.00%');
+        }
+
+        // Configuración de columnas
+        $sheet->getColumnDimension('A')->setWidth(30);
+        $sheet->getColumnDimension('B')->setWidth(15);
+        $sheet->getColumnDimension('C')->setWidth(25);
+        $sheet->getColumnDimension('D')->setWidth(20);
+        $sheet->getColumnDimension('E')->setWidth(15);
+        $sheet->getColumnDimension('F')->setWidth(15);
+        $sheet->getColumnDimension('G')->setWidth(15);
+        $sheet->getColumnDimension('H')->setWidth(18);
+        $sheet->getColumnDimension('I')->setWidth(18);
+        $sheet->getColumnDimension('J')->setWidth(18);
+        $sheet->getColumnDimension('K')->setWidth(15);
     }
 
     public function exportarPDF()
@@ -485,7 +664,7 @@ class Morosidad extends Component
                 'fecha_generacion' => now()->format('d/m/Y H:i:s')
             ];
 
-            $pdf = \PDF::loadView('admin.reportes.morosidad-pdf', $data);
+            $pdf = Pdf::loadView('admin.reportes.morosidad-pdf', $data);
             $filename = 'reporte_morosidad_' . now()->format('Y-m-d') . '.pdf';
 
             session()->flash('success', 'Archivo PDF generado correctamente.');

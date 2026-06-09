@@ -36,13 +36,13 @@ return [
             ]) : [],
         ],
 
-        'whatsapp_api' => [
+       'whatsapp_api' => [
             'driver' => 'mysql',
-            'host' => '158.69.175.224',
+            'host' => 'localhost',
             'port' => '3306',
-            'database' => 'mijveapi',
+            'database' => 'larawhatsapp',
             'username' => 'root',
-            'password' => 'AdaThei04112023*',
+            'password' => '',
             'charset' => 'utf8mb4',
             'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
