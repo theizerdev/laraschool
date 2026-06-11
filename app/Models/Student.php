@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
@@ -16,7 +17,7 @@ use Spatie\Activitylog\LogOptions;
 
 class Student extends Model
 {
-    use HasFactory, Multitenantable, LogsActivity;
+    use HasFactory, Multitenantable, LogsActivity, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -57,6 +58,7 @@ class Student extends Model
         'fecha_nacimiento' => 'date:Y-m-d',
         'status' => 'boolean',
         'representante_telefonos' => 'array',
+        'deleted_at' => 'datetime',
     ];
 
     /**

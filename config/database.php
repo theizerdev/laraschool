@@ -36,7 +36,7 @@ return [
             ]) : [],
         ],
 
-        'whatsapp_api' => [
+       'whatsapp_api' => [
             'driver' => 'mysql',
             'host' => env('DB_APIHOST', '127.0.0.1'),
             'port' => env('DB_APIPORT', '3306'),
@@ -128,3 +128,4 @@ return [
         ],
     ],
 ];
+
