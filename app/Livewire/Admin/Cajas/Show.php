@@ -319,7 +319,7 @@ class Show extends Component
             $row++;
             $encabezados = ['Documento', 'Estudiante', 'Método', 'Monto USD', 'Monto Bs', 'Referencia', 'Fecha Pago', 'Tasa (Bs/$)', 'Hora'];
             foreach ($encabezados as $col => $encabezado) {
-                $sheet->setCellValueByColumnAndRow($col + 1, $row, $encabezado);
+                $sheet->setCellValue([$col + 1, $row], $encabezado);
             }
             $sheet->getStyle('A' . $row . ':I' . $row)->getFont()->setBold(true);
 
@@ -404,8 +404,14 @@ class Show extends Component
     private function enviarWhatsAppConArchivo($telefono, $mensaje, $rutaArchivo)
     {
         try {
-            // Obtener token JWT
-            $jwtToken = config('whatsapp.api_key', 'test-api-key-vargas-centro');
+            // Obtener la empresa del usuario autenticado y sus credenciales de WhatsApp
+            $empresa = auth()->user()->empresa;
+            if (!$empresa) {
+                $empresa = \DB::table('empresas')->first();
+            }
+            
+            $whatsappApiKey = $empresa->whatsapp_api_key ?? config('whatsapp.api_key', 'test-api-key-vargas-centro');
+            $companyId = $empresa->id ?? null;
 
             // Formatear número de teléfono
             $telefonoFormateado = $this->formatPhoneNumber($telefono);
@@ -429,9 +435,16 @@ class Show extends Component
 
             // Enviar solo el documento con el mensaje como caption
             $nombreArchivo = basename($rutaArchivo);
-            $responseDoc = Http::withHeaders([
-                'X-API-Key' => $jwtToken
-            ])->attach(
+            $headers = [
+                'X-API-Key' => $whatsappApiKey
+            ];
+            
+            // Agregar X-Company-Id si está disponible
+            if ($companyId) {
+                $headers['X-Company-Id'] = (string) $companyId;
+            }
+            
+            $responseDoc = Http::withHeaders($headers)->attach(
                 'document', file_get_contents($rutaArchivo), $nombreArchivo
             )->timeout(60)->post(config('whatsapp.api_url', 'http://localhost:3001') . '/api/whatsapp/send-document', [
                 'to' => $telefonoFormateado,
@@ -499,7 +512,10 @@ class Show extends Component
             $cleaned = $codigoPais . $cleaned;
         }
 
-        // Agregar sufijo de WhatsApp
-        return $cleaned . '@s.whatsapp.net';
+        // Asegurar que solo queden dígitos (eliminar cualquier signo + o caracter no numérico restante)
+        $cleaned = preg_replace('/\D/', '', $cleaned);
+        
+        // La API de WhatsApp solo necesita los dígitos, no el sufijo @s.whatsapp.net
+        return $cleaned;
     }
 }
