@@ -32,7 +32,7 @@ class SyncCompanyToWhatsAppAPI extends Command
         DB::connection('whatsapp_temp')->table('companies')->updateOrInsert(
             ['id' => $companyId],
             [
-                'name' => $empresa->name ?? 'U.E VARGAS II',
+                'name' => $empresa->name ?? 'U.E U.E JOSE MARIA VARGAS',
                 'apiKey' => $empresa->api_key,
                 'webhookUrl' => null,
                 'rateLimitPerMinute' => 60,
@@ -42,7 +42,7 @@ class SyncCompanyToWhatsAppAPI extends Command
             ]
         );
 
-        $this->info("✅ Empresa U.E VARGAS II sincronizada con API de WhatsApp");
+        $this->info("✅ Empresa U.E U.E JOSE MARIA VARGAS sincronizada con API de WhatsApp");
         $this->info("🔑 Token: {$empresa->api_key}");
     }
 }

@@ -192,7 +192,7 @@ class Create extends Component
     {
         $nombreEstudiante = $student->nombres . ' ' . $student->apellidos;
         
-        $mensaje = "🎉 *¡Bienvenidos al U.E VARGAS II!*\n\n";
+        $mensaje = "🎉 *¡Bienvenidos al U.E U.E JOSE MARIA VARGAS!*\n\n";
         $mensaje .= "Estimado/a {$nombreDestino},\n\n";
         $mensaje .= "Nos complace informarle que el estudiante *{$nombreEstudiante}* ha sido registrado exitosamente en nuestra institución.\n\n";
         $mensaje .= "📝 *Datos del Estudiante:*\n";
@@ -202,7 +202,7 @@ class Create extends Component
         $mensaje .= "\n📚 Estamos comprometidos con brindar una educación de calidad y acompañar a nuestros estudiantes en su crecimiento académico y personal.\n\n";
         $mensaje .= "Próximamente recibirá información sobre el proceso de matrícula y demás detalles importantes.\n\n";
         $mensaje .= "Gracias por confiar en nosotros.\n\n";
-        $mensaje .= "*U.E VARGAS II*";
+        $mensaje .= "*U.E U.E JOSE MARIA VARGAS*";
         
         return $mensaje;
     }

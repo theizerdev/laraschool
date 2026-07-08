@@ -358,12 +358,12 @@ class Create extends Component
         $costoFormateado = '$' . number_format($matricula->costo, 2, ',', '.');
         
         if ($esMayorDeEdad) {
-            $mensaje = "🎓 *Matrícula Confirmada - U.E VARGAS II*\n\n";
+            $mensaje = "🎓 *Matrícula Confirmada - U.E U.E JOSE MARIA VARGAS*\n\n";
             $mensaje .= "Estimado/a {$nombreEstudiante},\n\n";
             $mensaje .= "Su matrícula ha sido procesada exitosamente.\n\n";
         } else {
             $representante = $estudiante->representante_nombres . ' ' . $estudiante->representante_apellidos;
-            $mensaje = "🎓 *Matrícula Confirmada - U.E VARGAS II*\n\n";
+            $mensaje = "🎓 *Matrícula Confirmada - U.E U.E JOSE MARIA VARGAS*\n\n";
             $mensaje .= "Estimado/a {$representante},\n\n";
             $mensaje .= "La matrícula del estudiante *{$nombreEstudiante}* ha sido procesada exitosamente.\n\n";
         }
@@ -385,7 +385,7 @@ class Create extends Component
         
         $mensaje .= "\n💳 Próximamente recibirá información sobre las fechas de pago y métodos disponibles.\n\n";
         $mensaje .= "Gracias por confiar en nuestra institución.\n\n";
-        $mensaje .= "*U.E VARGAS II*";
+        $mensaje .= "*U.E U.E JOSE MARIA VARGAS*";
         
         return $mensaje;
     }

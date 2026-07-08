@@ -19,7 +19,7 @@ class GenerateWhatsAppToken extends Command
         
         $payload = [
             'company_id' => (int)$companyId,
-            'company_name' => 'U.E VARGAS II',
+            'company_name' => 'U.E U.E JOSE MARIA VARGAS',
             'iat' => time(),
             'exp' => time() + (365 * 24 * 60 * 60) // 1 año
         ];

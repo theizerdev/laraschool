@@ -542,7 +542,7 @@ class QrAccess extends Component
         $message .= "**Código:** {$student->codigo}\n";
         $message .= "**Fecha:** {$accessDate}\n";
         $message .= "**Hora:** {$accessTime}\n";
-        $message .= "\n🏫 U.E VARGAS II\n";
+        $message .= "\n🏫 U.E U.E JOSE MARIA VARGAS\n";
         $message .= "💡 Este es un mensaje automático";
 
         return $message;
