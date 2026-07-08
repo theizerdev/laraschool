@@ -17,7 +17,7 @@
     <div class="container">
         <div class="header">
             <h2>✅ Pago Recibido</h2>
-            <p>U.E U.E JOSE MARIA VARGAS</p>
+            <p>U.E JOSE MARIA VARGAS</p>
         </div>
         
         <div class="content">
@@ -47,7 +47,7 @@
         </div>
         
         <div class="footer">
-            <p>U.E U.E JOSE MARIA VARGAS<br>
+            <p>U.E JOSE MARIA VARGAS<br>
             Este es un mensaje automático, por favor no responder a este correo.</p>
         </div>
     </div>

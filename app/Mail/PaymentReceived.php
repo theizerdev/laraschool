@@ -22,7 +22,7 @@ class PaymentReceived extends Mailable
 
     public function build()
     {
-        return $this->subject('Confirmación de Pago Recibido - U.E U.E JOSE MARIA VARGAS')
+        return $this->subject('Confirmación de Pago Recibido - U.E JOSE MARIA VARGAS')
                     ->view('emails.payment-received');
     }
 }

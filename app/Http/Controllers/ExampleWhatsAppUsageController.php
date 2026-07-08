@@ -23,7 +23,7 @@ class ExampleWhatsAppUsageController extends Controller
         $name = $request->input('name', 'Cliente');
 
         $message = "¡Hola {$name}! 👋\n\n";
-        $message .= "Bienvenido al U.E U.E JOSE MARIA VARGAS.\n";
+        $message .= "Bienvenido al U.E JOSE MARIA VARGAS.\n";
         $message .= "Estamos aquí para ayudarte con tus consultas.\n\n";
         $message .= "¿En qué podemos asistirte hoy?";
 
@@ -52,7 +52,7 @@ class ExampleWhatsAppUsageController extends Controller
         $message .= "⏰ Hora: {$time}\n";
         $message .= "📋 Servicio: {$service}\n\n";
         $message .= "Por favor confirma tu asistencia respondiendo *SÍ* o *NO*.\n\n";
-        $message .= "U.E U.E JOSE MARIA VARGAS";
+        $message .= "U.E JOSE MARIA VARGAS";
 
         $result = $this->whatsappService->sendMessage($phone, $message);
 

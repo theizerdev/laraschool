@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'name' =>'U.E U.E JOSE MARIA VARGAS',
+    'name' =>'U.E JOSE MARIA VARGAS',
 
     /*
     |--------------------------------------------------------------------------
