@@ -117,7 +117,7 @@ class SendAccessWhatsAppNotificationJob implements ShouldQueue
                     // Formatear el número con el código de país
                     $telefonoFormateado = $this->formatPhoneNumber($telefono, $codigoPais);
                     
-                    $resultado = $whatsappService->sendMessage($telefonoFormateado, $message);
+                    $resultado = $whatsappService->sendMessage($telefonoFormateado, $mensaje, true)
                     
                     if ($resultado) {
                         $sentCount++;

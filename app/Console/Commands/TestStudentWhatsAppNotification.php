@@ -116,7 +116,7 @@ class TestStudentWhatsAppNotification extends Command
                     $message = $this->buildTestMessage($student, $accessLog);
                     
                     // Enviar mensaje
-                    $resultado = $whatsappService->sendMessage($telefonoFormateado, $message);
+                    $resultado = $whatsappService->sendMessage($telefonoFormateado, $mensaje, true)
                     
                     if ($resultado['success']) {
                         $sentCount++;
