@@ -26,6 +26,7 @@ class CambiarCuotas extends Component
     public $showModal = false;
     public $showPreview = false;
     public $previewData = [];
+    public $expandedMatriculas = [];
 
     protected $rules = [
         'nuevo_monto' => 'required_if:tipo_ajuste,monto|numeric|min:0.01',
@@ -40,6 +41,7 @@ class CambiarCuotas extends Component
     public function updatedSearch()
     {
         $this->resetPage();
+        $this->expandedMatriculas = [];
     }
 
     public function selectSchedule($scheduleId)
@@ -53,13 +55,49 @@ class CambiarCuotas extends Component
 
     public function selectAll()
     {
-        $schedules = $this->getSchedulesQuery()->pluck('id')->toArray();
-        $this->selectedSchedules = $schedules;
+        $matriculas = $this->getMatriculasQuery()->get();
+        $schedules = [];
+        foreach ($matriculas as $matricula) {
+            $schedules = array_merge($schedules, $matricula->paymentSchedules->pluck('id')->toArray());
+        }
+        $this->selectedSchedules = array_unique($schedules);
     }
 
     public function deselectAll()
     {
         $this->selectedSchedules = [];
+    }
+
+    public function toggleExpand($matriculaId)
+    {
+        if (in_array($matriculaId, $this->expandedMatriculas)) {
+            $this->expandedMatriculas = array_diff($this->expandedMatriculas, [$matriculaId]);
+        } else {
+            $this->expandedMatriculas[] = $matriculaId;
+        }
+    }
+
+    public function selectMatriculaSchedules($matriculaId)
+    {
+        $matricula = Matricula::with(['paymentSchedules' => function($q) {
+            $q->where('numero_cuota', '>', 0)
+              ->whereIn('estado', ['pendiente', 'vencido']);
+        }])->find($matriculaId);
+
+        if ($matricula) {
+            $scheduleIds = $matricula->paymentSchedules->pluck('id')->toArray();
+            
+            // Check if all of them are already selected
+            $allSelected = count(array_intersect($scheduleIds, $this->selectedSchedules)) === count($scheduleIds);
+
+            if ($allSelected) {
+                // Deselect all for this matricula
+                $this->selectedSchedules = array_diff($this->selectedSchedules, $scheduleIds);
+            } else {
+                // Select all for this matricula
+                $this->selectedSchedules = array_unique(array_merge($this->selectedSchedules, $scheduleIds));
+            }
+        }
     }
 
     public function openModal()
@@ -119,7 +157,7 @@ class CambiarCuotas extends Component
     {
         $query = PaymentSchedule::with(['matricula.student'])
             ->where('numero_cuota', '>', 0)
-            ->where('estado', 'pendiente');
+            ->whereIn('estado', ['pendiente', 'vencido']);
 
         if (!auth()->user()->hasRole('Super Administrador')) {
             $query->where('empresa_id', auth()->user()->empresa_id)
@@ -150,14 +188,18 @@ class CambiarCuotas extends Component
         return $query->get();
     }
 
-    private function getSchedulesQuery()
+    private function getMatriculasQuery()
     {
-        $query = PaymentSchedule::with(['matricula.student'])
-            ->where('numero_cuota', '>', 0) // Excluir cuota inicial
-            ->where('estado', 'pendiente') // Solo cuotas pendientes
-            ->whereHas('matricula', function($q) {
-                $q->whereHas('student'); // Asegurar que exista el estudiante
-            });
+        $query = Matricula::with(['estudiante', 'programa', 'paymentSchedules' => function($q) {
+            $q->where('numero_cuota', '>', 0)
+              ->whereIn('estado', ['pendiente', 'vencido'])
+              ->orderBy('numero_cuota');
+        }])
+        ->whereHas('estudiante')
+        ->whereHas('paymentSchedules', function($q) {
+            $q->where('numero_cuota', '>', 0)
+              ->whereIn('estado', ['pendiente', 'vencido']);
+        });
 
         if (!auth()->user()->hasRole('Super Administrador')) {
             $query->where('empresa_id', auth()->user()->empresa_id)
@@ -165,25 +207,25 @@ class CambiarCuotas extends Component
         }
 
         if ($this->search) {
-            $query->whereHas('matricula.student', function($q) {
+            $query->whereHas('estudiante', function($q) {
                 $q->where('nombres', 'like', '%' . $this->search . '%')
                   ->orWhere('apellidos', 'like', '%' . $this->search . '%')
                   ->orWhere('codigo', 'like', '%' . $this->search . '%');
             });
         }
 
-        return $query->orderBy('fecha_vencimiento');
+        return $query;
     }
 
     public function render()
     {
-        $schedules = $this->getSchedulesQuery()->paginate(10);
+        $matriculas = $this->getMatriculasQuery()->paginate(10);
         $cursos = \App\Models\Programa::where('activo', true)
             ->orderBy('nombre')
             ->get();
 
         return view('livewire.admin.matriculas.cambiar-cuotas', [
-            'schedules' => $schedules,
+            'matriculas' => $matriculas,
             'cursos' => $cursos
         ])->layout($this->getLayout());
     }

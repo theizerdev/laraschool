@@ -120,31 +120,37 @@
                                        wire:click="@if(count($this->selectedSchedules) > 0) deselectAll @else selectAll @endif">
                             </th>
                             <th>Estudiante</th>
-                            <th>Cuota</th>
-                            <th>Monto Actual</th>
-                            <th>Fecha Vencimiento</th>
-                            <th>Estado</th>
+                            <th>Cuotas Pendientes</th>
+                            <th>Monto Total Pendiente</th>
+                            <th width="80" class="text-end">Detalle</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($schedules as $schedule)
-                            <tr>
+                        @forelse($matriculas as $matricula)
+                            @php
+                                $pendingSchedules = $matricula->paymentSchedules;
+                                $pendingIds = $pendingSchedules->pluck('id')->toArray();
+                                $allSelected = count($pendingIds) > 0 && count(array_intersect($pendingIds, $selectedSchedules)) === count($pendingIds);
+                                $someSelected = count($pendingIds) > 0 && count(array_intersect($pendingIds, $selectedSchedules)) > 0 && !$allSelected;
+                                $isExpanded = in_array($matricula->id, $expandedMatriculas);
+                            @endphp
+                            <tr class="align-middle">
                                 <td>
                                     <input type="checkbox" class="form-check-input"
-                                           wire:click="selectSchedule({{ $schedule->id }})"
-                                           @if(in_array($schedule->id, $this->selectedSchedules)) checked @endif>
+                                           wire:click="selectMatriculaSchedules({{ $matricula->id }})"
+                                           @if($allSelected) checked @endif>
                                 </td>
-                                <td>
-                                    @if($schedule->matricula && $schedule->matricula->student)
+                                <td style="cursor: pointer;" wire:click="toggleExpand({{ $matricula->id }})">
+                                    @if($matricula->estudiante)
                                         <div class="d-flex align-items-center">
                                             <div class="avatar avatar-sm me-2">
                                                 <div class="avatar-initial bg-primary bg-opacity-10 text-primary rounded">
-                                                    {{ substr($schedule->matricula->student->nombres, 0, 1) }}{{ substr($schedule->matricula->student->apellidos, 0, 1) }}
+                                                    {{ substr($matricula->estudiante->nombres, 0, 1) }}{{ substr($matricula->estudiante->apellidos, 0, 1) }}
                                                 </div>
                                             </div>
                                             <div>
-                                                <h6 class="mb-0">{{ $schedule->matricula->student->nombres }} {{ $schedule->matricula->student->apellidos }}</h6>
-                                                <small class="text-muted">{{ $schedule->matricula->student->codigo }}</small>
+                                                <h6 class="mb-0">{{ $matricula->estudiante->nombres }} {{ $matricula->estudiante->apellidos }}</h6>
+                                                <small class="text-muted">Código: {{ $matricula->estudiante->codigo }} | {{ $matricula->programa->nombre ?? 'N/A' }}</small>
                                             </div>
                                         </div>
                                     @else
@@ -153,32 +159,84 @@
                                         </div>
                                     @endif
                                 </td>
-                                <td>
-                                    <span class="badge bg-info bg-opacity-10 text-info">
-                                        Cuota #{{ $schedule->numero_cuota }}
+                                <td style="cursor: pointer;" wire:click="toggleExpand({{ $matricula->id }})">
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                                        {{ count($pendingSchedules) }} cuotas
                                     </span>
                                 </td>
-                                <td>
-                                    <span class="fw-bold text-primary">@money($schedule->monto)</span>
+                                <td style="cursor: pointer;" wire:click="toggleExpand({{ $matricula->id }})">
+                                    <span class="fw-bold text-primary">@money($pendingSchedules->sum('monto'))</span>
                                 </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <i class="ri ri-calendar-line text-muted me-1"></i>
-                                        {{ format_date($schedule->fecha_vencimiento) }}
-                                        @if($schedule->fecha_vencimiento < now())
-                                            <span class="badge bg-danger ms-2">Vencida</span>
-                                        @endif
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-warning bg-opacity-10 text-warning">
-                                        {{ ucfirst($schedule->estado) }}
-                                    </span>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-sm btn-icon btn-flat-secondary" wire:click="toggleExpand({{ $matricula->id }})">
+                                        <i class="ri {{ $isExpanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line' }} fs-5"></i>
+                                    </button>
                                 </td>
                             </tr>
+                            
+                            @if($isExpanded)
+                                <tr>
+                                    <td></td>
+                                    <td colspan="4" class="p-0">
+                                        <div class="bg-light p-3 border-start border-end border-bottom">
+                                            <div class="card shadow-none border mb-0">
+                                                <div class="card-header bg-white py-2">
+                                                    <h6 class="mb-0 text-muted fs-7">Cuotas Pendientes Detalladas</h6>
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-sm table-hover mb-0">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th width="50" class="text-center">Sel.</th>
+                                                                <th>Cuota</th>
+                                                                <th>Monto Actual</th>
+                                                                <th>Fecha Vencimiento</th>
+                                                                <th>Estado</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            @foreach($pendingSchedules as $schedule)
+                                                                <tr class="align-middle">
+                                                                    <td class="text-center">
+                                                                        <input type="checkbox" class="form-check-input"
+                                                                               wire:click="selectSchedule({{ $schedule->id }})"
+                                                                               @if(in_array($schedule->id, $selectedSchedules)) checked @endif>
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="badge bg-info bg-opacity-10 text-info">
+                                                                            Cuota #{{ $schedule->numero_cuota }}
+                                                                        </span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="fw-bold text-primary">@money($schedule->monto)</span>
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="d-flex align-items-center">
+                                                                            <i class="ri ri-calendar-line text-muted me-1"></i>
+                                                                            {{ format_date($schedule->fecha_vencimiento) }}
+                                                                            @if($schedule->fecha_vencimiento < now())
+                                                                                <span class="badge bg-danger ms-2">Vencida</span>
+                                                                            @endif
+                                                                        </div>
+                                                                    </td>
+                                                                    <td>
+                                                                        <span class="badge bg-warning bg-opacity-10 text-warning">
+                                                                            {{ ucfirst($schedule->estado) }}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endif
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-4">
+                                <td colspan="5" class="text-center py-4">
                                     <div class="d-flex flex-column align-items-center">
                                         <i class="ri ri-file-list-line ri-48px text-muted mb-2"></i>
                                         <h6 class="text-muted">No hay cuotas pendientes</h6>
@@ -191,7 +249,7 @@
                 </table>
             </div>
 
-            {{ $schedules->links('livewire.pagination') }}
+            {{ $matriculas->links('livewire.pagination') }}
         </div>
     </div>
 
