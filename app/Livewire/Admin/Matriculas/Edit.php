@@ -432,7 +432,7 @@ class Edit extends Component
             $telefonoFormateado = $this->formatPhoneNumber($telefono);
             
             $whatsappService = app('App\\Services\\WhatsAppService');
-            $whatsappResult = $whatsappService->sendMessage($telefonoFormateado, $mensaje);
+            $whatsappResult = $whatsappService->sendMessage($telefonoFormateado, $mensaje, true);
             
             $result['sent'] = $whatsappResult && ($whatsappResult['success'] ?? false);
             
