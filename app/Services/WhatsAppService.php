@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Empresa;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -14,7 +15,16 @@ class WhatsAppService
 
     private $companyId;
 
+    private $instanceName;
+
     private $timeout;
+
+    public function setTimeout(int $seconds): self
+    {
+        $this->timeout = $seconds;
+
+        return $this;
+    }
 
     /**
      * Constructor del servicio WhatsApp
@@ -23,75 +33,104 @@ class WhatsAppService
      */
     public function __construct($empresa = null)
     {
-        $this->baseUrl = config('whatsapp.api_url', 'http://localhost:3001');
+        $this->baseUrl = config('whatsapp.api_url', 'http://82.165.213.124:8092');
         $this->timeout = config('whatsapp.timeout', 30);
 
-        // Resolver la empresa y obtener su API key
-        $this->resolveCompany($empresa);
+        if (is_array($empresa)) {
+            $this->resolveCredentials($empresa);
+        } else {
+            $this->resolveCompany($empresa);
+        }
+    }
+
+    public static function forCredentials(array $credentials): self
+    {
+        return new self($credentials);
     }
 
     /**
-     * Resuelve la empresa y configura la API key
+     * Resuelve las credenciales provistas directamente
+     */
+    private function resolveCredentials(array $credentials): void
+    {
+        if (! empty($credentials['api_url'])) {
+            $this->baseUrl = rtrim($credentials['api_url'], '/');
+        }
+
+        $this->timeout = $credentials['timeout'] ?? $this->timeout;
+        $this->companyId = $credentials['empresa_id'] ?? $credentials['company_id'] ?? 1;
+        $this->apiKey = $credentials['api_key'] ?? $credentials['apiKey'] ?? null;
+        $this->instanceName = $credentials['instance'] ?? $credentials['whatsapp_instance'] ?? null;
+
+        if ($this->companyId) {
+            $empresaModel = Empresa::find($this->companyId);
+            if ($empresaModel) {
+                if (! $this->apiKey) {
+                    $this->apiKey = $empresaModel->whatsapp_api_key;
+                }
+                if (! $this->instanceName && ! empty($empresaModel->whatsapp_instance)) {
+                    $this->instanceName = $empresaModel->whatsapp_instance;
+                }
+                if (! empty($empresaModel->whatsapp_api_url)) {
+                    $this->baseUrl = rtrim($empresaModel->whatsapp_api_url, '/');
+                }
+            }
+
+            // Consultar MessagingConnection si aun no hay instancia
+            if (! $this->instanceName) {
+                $connection = MessagingConnection::forEmpresa($this->companyId)
+                    ->whereHas('provider', fn($q) => $q->where('slug', 'whatsapp_lite'))
+                    ->first();
+                if ($connection && ! empty($connection->credentials['instance'])) {
+                    $this->instanceName = $connection->credentials['instance'];
+                }
+            }
+        }
+
+        if (! $this->apiKey) {
+            $this->apiKey = config('whatsapp.api_key', 'test-api-key-vargas-centro');
+        }
+
+        if (! $this->instanceName) {
+            $this->instanceName = 'empresa_'.$this->companyId;
+        }
+    }
+
+    /**
+     * Resuelve la empresa y configura la API key e instancia
      */
     private function resolveCompany($empresa = null): void
     {
-        // Si se pasa una empresa directamente
+        $empresaModel = null;
+
         if ($empresa instanceof Empresa) {
-            $this->companyId = $empresa->id;
-            $this->apiKey = $empresa->whatsapp_api_key;
-
-            return;
-        }
-
-        // Si se pasa un ID de empresa
-        if (is_numeric($empresa)) {
+            $empresaModel = $empresa;
+        } elseif (is_numeric($empresa)) {
             $empresaModel = Empresa::find($empresa);
-            if ($empresaModel) {
-                $this->companyId = $empresaModel->id;
-                $this->apiKey = $empresaModel->whatsapp_api_key;
-
-                return;
-            }
-        }
-
-        // Intentar obtener la empresa del usuario autenticado
-        if (auth()->check() && auth()->user()->empresa_id) {
+        } elseif (auth()->check() && auth()->user()->empresa_id) {
             $empresaModel = Empresa::find(auth()->user()->empresa_id);
-            if ($empresaModel) {
-                $this->companyId = $empresaModel->id;
-                $this->apiKey = $empresaModel->whatsapp_api_key;
-
-                return;
-            }
         }
 
-        // Buscar empresa con API key configurada y priorizar por razón social
-        $empresaConApiKey = Empresa::whereNotNull('whatsapp_api_key')
-            ->where('whatsapp_api_key', '!=', '')
-            ->orderByRaw("razon_social = 'Unidad Educativa Vargas II' DESC") // Priorizar por nombre
-            ->orderBy('id', 'asc') // Luego por ID
-            ->first();
+        if (! $empresaModel) {
+            $empresaModel = Empresa::find(1);
+        }
 
-        if ($empresaConApiKey) {
-            $this->companyId = $empresaConApiKey->id;
-            $this->apiKey = $empresaConApiKey->whatsapp_api_key;
-            
-            Log::info('WhatsApp: Usando empresa con API key configurada', [
-                'company_id' => $this->companyId,
-                'company_name' => $empresaConApiKey->razon_social
-            ]);
+        if ($empresaModel) {
+            $this->companyId = $empresaModel->id;
+            $this->apiKey = $empresaModel->whatsapp_api_key ?? config('whatsapp.api_key', 'test-api-key-vargas-centro');
+            if (! empty($empresaModel->whatsapp_api_url)) {
+                $this->baseUrl = rtrim($empresaModel->whatsapp_api_url, '/');
+            }
+            $this->instanceName = ! empty($empresaModel->whatsapp_instance)
+                ? $empresaModel->whatsapp_instance
+                : 'empresa_'.$empresaModel->id;
 
             return;
         }
 
-        // Fallback a la configuración global (para compatibilidad)
         $this->companyId = 1;
         $this->apiKey = config('whatsapp.api_key', 'test-api-key-vargas-centro');
-        
-        Log::warning('WhatsApp: Usando configuración global fallback', [
-            'company_id' => $this->companyId,
-            'api_key' => substr($this->apiKey, 0, 10) . '...'
-        ]);
+        $this->instanceName = 'empresa_1';
     }
 
     /**
@@ -106,28 +145,19 @@ class WhatsAppService
         ];
     }
 
-    /**
-     * Crea una instancia del servicio para una empresa específica
-     */
     public static function forCompany($empresa): self
     {
         return new self($empresa);
     }
 
-    /**
-     * Obtener el ID de la empresa configurada
-     */
     public function getCompanyId(): int
     {
         return $this->companyId;
     }
 
-    /**
-     * Obtener la API key configurada
-     */
-    public function getApiKey(): string
+    public function getInstanceName(): string
     {
-        return $this->apiKey;
+        return $this->instanceName;
     }
 
     /**
@@ -136,14 +166,61 @@ class WhatsAppService
     public function getStatus()
     {
         try {
-            $response = Http::timeout($this->timeout)
+            $url = "{$this->baseUrl}/api/instance/{$this->instanceName}/status";
+            $response = Http::timeout(10)
                 ->withHeaders($this->getHeaders())
-                ->get("{$this->baseUrl}/api/whatsapp/status");
+                ->get($url);
 
-            return $response->successful() ? $response->json() : null;
+            if ($response->successful()) {
+                $data = $response->json();
+                $status = $data['status'] ?? 'close';
+                $isConnected = ($status === 'open');
+
+                return [
+                    'instanceName' => $data['instanceName'] ?? $this->instanceName,
+                    'status' => $status,
+                    'isConnected' => $isConnected,
+                    'connectionState' => $isConnected ? 'connected' : ($status === 'qr' ? 'qr_ready' : $status),
+                    'qrCode' => $data['qrDataUrl'] ?? null,
+                    'token' => $data['token'] ?? null,
+                    'user' => [
+                        'id' => $data['userJid'] ?? null,
+                    ],
+                    'raw' => $data,
+                ];
+            }
+
+            // Si la instancia aún no existe en el manager de Node (404), la declaramos como desconectada
+            if ($response->status() === 404) {
+                return [
+                    'instanceName' => $this->instanceName,
+                    'status' => 'close',
+                    'isConnected' => false,
+                    'connectionState' => 'disconnected',
+                    'qrCode' => null,
+                    'user' => null,
+                ];
+            }
+
+            Log::warning('WhatsApp Status HTTP Error', [
+                'company_id' => $this->companyId,
+                'instance' => $this->instanceName,
+                'status' => $response->status(),
+            ]);
+
+            return null;
+        } catch (ConnectionException $e) {
+            Log::error('WhatsApp Service Unavailable: '.$e->getMessage(), [
+                'company_id' => $this->companyId,
+                'url' => $this->baseUrl,
+                'instance' => $this->instanceName,
+            ]);
+
+            return ['_error' => 'service_unavailable'];
         } catch (\Exception $e) {
             Log::error('WhatsApp Status Error: '.$e->getMessage(), [
                 'company_id' => $this->companyId,
+                'instance' => $this->instanceName,
             ]);
 
             return null;
@@ -155,19 +232,12 @@ class WhatsAppService
      */
     public function getQRCode()
     {
-        try {
-            $response = Http::timeout($this->timeout)
-                ->withHeaders($this->getHeaders())
-                ->get("{$this->baseUrl}/api/whatsapp/qr");
-
-            return $response->successful() ? $response->json() : null;
-        } catch (\Exception $e) {
-            Log::error('WhatsApp QR Error: '.$e->getMessage(), [
-                'company_id' => $this->companyId,
-            ]);
-
-            return null;
+        $status = $this->getStatus();
+        if ($status && isset($status['qrCode'])) {
+            return ['qrCode' => $status['qrCode']];
         }
+
+        return null;
     }
 
     /**
@@ -176,26 +246,26 @@ class WhatsAppService
     public function sendMessage(string $to, string $message, bool $isWelcome = false)
     {
         try {
+            $url = "{$this->baseUrl}/api/message/send-text/{$this->instanceName}";
             $response = Http::timeout($this->timeout)
                 ->withHeaders($this->getHeaders())
-                ->post("{$this->baseUrl}/api/whatsapp/send", [
+                ->post($url, [
                     'to' => $to,
                     'message' => $message,
-                    'type' => 'text',
-                    'isWelcome' => $isWelcome,
                 ]);
-            // dd($response);
+
             if ($response->successful()) {
                 Log::info('WhatsApp mensaje enviado', [
                     'company_id' => $this->companyId,
+                    'instance' => $this->instanceName,
                     'to' => $to,
-                    'message_id' => $response->json('messageId'),
                 ]);
 
                 return $response->json();
             } else {
                 Log::error('WhatsApp Send Message Failed', [
                     'company_id' => $this->companyId,
+                    'instance' => $this->instanceName,
                     'to' => $to,
                     'status' => $response->status(),
                     'body' => $response->body(),
@@ -206,6 +276,7 @@ class WhatsAppService
         } catch (\Exception $e) {
             Log::error('WhatsApp Send Message Error: '.$e->getMessage(), [
                 'company_id' => $this->companyId,
+                'instance' => $this->instanceName,
                 'to' => $to,
             ]);
 
@@ -214,92 +285,60 @@ class WhatsAppService
     }
 
     /**
-     * Enviar documento (PDF, Excel, Word, etc.)
+     * Enviar documento o imagen vía URL
      */
-    public function sendDocument(string $to, string $filePath, string $caption = '')
+    public function sendMedia(string $to, string $mediaUrl, string $caption = '')
     {
         try {
+            $url = "{$this->baseUrl}/api/message/send-media/{$this->instanceName}";
             $response = Http::timeout($this->timeout)
-                ->withHeaders([
-                    'X-API-Key' => $this->apiKey,
-                    'X-Company-Id' => (string) $this->companyId,
-                ])
-                ->attach('document', file_get_contents($filePath), basename($filePath))
-                ->post("{$this->baseUrl}/api/whatsapp/send-document", [
+                ->withHeaders($this->getHeaders())
+                ->post($url, [
                     'to' => $to,
+                    'url' => $mediaUrl,
                     'caption' => $caption,
                 ]);
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
-            Log::error('WhatsApp Send Document Error: '.$e->getMessage(), [
+            Log::error('WhatsApp Send Media Error: '.$e->getMessage(), [
                 'company_id' => $this->companyId,
+                'instance' => $this->instanceName,
                 'to' => $to,
             ]);
 
             return null;
         }
+    }
+
+    public function sendDocument(string $to, string $filePath, string $caption = '')
+    {
+        return $this->sendMedia($to, $filePath, $caption);
     }
 
     public function sendImage(string $to, string $filePath, string $caption = '')
     {
-        try {
-            $response = Http::timeout($this->timeout)
-                ->withHeaders([
-                    'X-API-Key' => $this->apiKey,
-                    'X-Company-Id' => (string) $this->companyId,
-                ])
-                ->attach('image', file_get_contents($filePath), basename($filePath))
-                ->post("{$this->baseUrl}/api/whatsapp/send-image", [
-                    'to' => $to,
-                    'caption' => $caption,
-                ]);
-
-            return $response->successful() ? $response->json() : null;
-        } catch (\Exception $e) {
-            Log::error('WhatsApp Send Image Error: '.$e->getMessage(), [
-                'company_id' => $this->companyId,
-                'to' => $to,
-            ]);
-
-            return null;
-        }
+        return $this->sendMedia($to, $filePath, $caption);
     }
 
     /**
-     * Obtener historial de mensajes
-     */
-    public function getMessages(array $filters = [])
-    {
-        try {
-            $response = Http::timeout($this->timeout)
-                ->withHeaders($this->getHeaders())
-                ->get("{$this->baseUrl}/api/whatsapp/messages", $filters);
-
-            return $response->successful() ? $response->json() : null;
-        } catch (\Exception $e) {
-            Log::error('WhatsApp Get Messages Error: '.$e->getMessage(), [
-                'company_id' => $this->companyId,
-            ]);
-
-            return null;
-        }
-    }
-
-    /**
-     * Conectar WhatsApp
+     * Conectar / Crear instancia en el servidor de WhatsApp
      */
     public function connect()
     {
         try {
+            $url = "{$this->baseUrl}/api/instance/create";
             $response = Http::timeout($this->timeout)
                 ->withHeaders($this->getHeaders())
-                ->post("{$this->baseUrl}/api/whatsapp/connect");
+                ->post($url, [
+                    'name' => $this->instanceName,
+                ]);
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             Log::error('WhatsApp Connect Error: '.$e->getMessage(), [
                 'company_id' => $this->companyId,
+                'instance' => $this->instanceName,
             ]);
 
             return null;
@@ -307,118 +346,37 @@ class WhatsAppService
     }
 
     /**
-     * Desconectar WhatsApp
+     * Desconectar / Eliminar instancia
      */
     public function disconnect()
     {
         try {
+            $url = "{$this->baseUrl}/api/instance/{$this->instanceName}";
             $response = Http::timeout($this->timeout)
                 ->withHeaders($this->getHeaders())
-                ->delete("{$this->baseUrl}/api/whatsapp/disconnect");
+                ->delete($url);
 
             return $response->successful() ? $response->json() : null;
         } catch (\Exception $e) {
             Log::error('WhatsApp Disconnect Error: '.$e->getMessage(), [
                 'company_id' => $this->companyId,
+                'instance' => $this->instanceName,
             ]);
 
             return null;
         }
     }
 
-    /**
-     * Reconectar WhatsApp
-     */
     public function reconnect()
     {
-        try {
-            $response = Http::timeout($this->timeout)
-                ->withHeaders($this->getHeaders())
-                ->post("{$this->baseUrl}/api/whatsapp/reconnect");
-
-            return $response->successful() ? $response->json() : null;
-        } catch (\Exception $e) {
-            Log::error('WhatsApp Reconnect Error: '.$e->getMessage(), [
-                'company_id' => $this->companyId,
-            ]);
-
-            return null;
-        }
+        return $this->connect();
     }
 
-    /**
-     * Eliminar sesión (logout completo)
-     */
     public function removeSession()
     {
-        try {
-            $response = Http::timeout($this->timeout)
-                ->withHeaders($this->getHeaders())
-                ->delete("{$this->baseUrl}/api/whatsapp/session");
-
-            return $response->successful() ? $response->json() : null;
-        } catch (\Exception $e) {
-            Log::error('WhatsApp Remove Session Error: '.$e->getMessage(), [
-                'company_id' => $this->companyId,
-            ]);
-
-            return null;
-        }
+        return $this->disconnect();
     }
 
-    /**
-     * Obtener estadísticas del manager (todas las empresas)
-     */
-    public function getManagerStats()
-    {
-        try {
-            $response = Http::timeout($this->timeout)
-                ->withHeaders($this->getHeaders())
-                ->get("{$this->baseUrl}/api/whatsapp/manager/stats");
-
-            return $response->successful() ? $response->json() : null;
-        } catch (\Exception $e) {
-            Log::error('WhatsApp Manager Stats Error: '.$e->getMessage());
-
-            return null;
-        }
-    }
-
-    /**
-     * Enviar mensaje interactivo con botones (WhatsApp Business API)
-     */
-    public function sendInteractiveMessage(string $to, array $interactiveMessage)
-    {
-        try {
-            $response = Http::timeout($this->timeout)
-                ->withHeaders($this->getHeaders())
-                ->post("{$this->baseUrl}/api/whatsapp/send-interactive", [
-                    'to' => $to,
-                    'interactive' => $interactiveMessage,
-                ]);
-
-            if ($response->successful()) {
-                Log::info('WhatsApp mensaje interactivo enviado', [
-                    'company_id' => $this->companyId,
-                    'to' => $to,
-                    'message_id' => $response->json('messageId'),
-                ]);
-            }
-
-            return $response->successful() ? $response->json() : null;
-        } catch (\Exception $e) {
-            Log::error('WhatsApp Send Interactive Message Error: '.$e->getMessage(), [
-                'company_id' => $this->companyId,
-                'to' => $to,
-            ]);
-
-            return null;
-        }
-    }
-
-    /**
-     * Verifica si el servicio tiene configuración válida
-     */
     public function isConfigured(): bool
     {
         return ! empty($this->apiKey) && ! empty($this->companyId);
