@@ -29,7 +29,9 @@ class Empresa extends Model
         'whatsapp_active',
         'whatsapp_phone',
         'whatsapp_status',
-        'whatsapp_last_connected'
+        'whatsapp_last_connected',
+        'whatsapp_api_url',
+        'whatsapp_instance'
     ];
 
     protected $casts = [
