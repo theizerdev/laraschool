@@ -378,7 +378,7 @@ class Edit extends Component
     private function createPaymentSchedule($matricula)
     {
         try {
-            $matricula = Matricula::find($this->matricula_id);
+            $matricula = Matricula::find($matricula->id);
          
             foreach ($this->paymentSchedule as $schedule) {
                 
