@@ -371,7 +371,7 @@ class QrAccess extends Component
                             $message = $this->buildWhatsAppMessage($this->selectedStudent, $accessLog);
                             
                             // Enviar mensaje
-                            $resultado = $whatsappService->sendMessage($telefonoFormateado, $message);
+                            $resultado = $whatsappService->sendMessage($telefonoFormateado, $mensaje, true);
                             
                             if ($resultado['success']) {
                                 $sentCount++;
