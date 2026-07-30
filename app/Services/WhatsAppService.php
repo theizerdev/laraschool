@@ -313,11 +313,21 @@ class WhatsAppService
 
     public function sendDocument(string $to, string $filePath, string $caption = '')
     {
+        if (file_exists($filePath)) {
+            $mime = mime_content_type($filePath) ?: 'application/pdf';
+            $base64 = base64_encode(file_get_contents($filePath));
+            $filePath = "data:{$mime};base64,{$base64}";
+        }
         return $this->sendMedia($to, $filePath, $caption);
     }
 
     public function sendImage(string $to, string $filePath, string $caption = '')
     {
+        if (file_exists($filePath)) {
+            $mime = mime_content_type($filePath) ?: 'image/jpeg';
+            $base64 = base64_encode(file_get_contents($filePath));
+            $filePath = "data:{$mime};base64,{$base64}";
+        }
         return $this->sendMedia($to, $filePath, $caption);
     }
 

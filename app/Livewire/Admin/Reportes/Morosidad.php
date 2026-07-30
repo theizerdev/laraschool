@@ -316,13 +316,12 @@ class Morosidad extends Component
                 $whatsappService = app(WhatsAppService::class);
 
                 // Enviar mensaje de texto primero
-                $resultText = $whatsappService->sendMessage($telefonoFormateado, $mensajeResumen,true);;
+                $resultText = $whatsappService->sendMessage($telefonoFormateado, $mensajeResumen, true);
 
                 // Luego enviar el PDF como documento
                 if ($resultText && ($resultText['success'] ?? false)) {
                     $resultPDF = $whatsappService->sendDocument(
                         $telefonoFormateado,
-                        true,
                         $pdfPath,
                         'Detalle de Deuda - U.E VARGAS II'
                     );
