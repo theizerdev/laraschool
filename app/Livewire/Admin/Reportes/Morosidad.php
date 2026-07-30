@@ -316,7 +316,7 @@ class Morosidad extends Component
                 $whatsappService = app(WhatsAppService::class);
 
                 // Enviar mensaje de texto primero
-                $resultText = $whatsappService->sendMessage($telefonoFormateado, $mensajeResumen,true);
+                $resultText = $whatsappService->sendMessage($telefonoFormateado, $mensajeResumen,true);;
 
                 // Luego enviar el PDF como documento
                 if ($resultText && ($resultText['success'] ?? false)) {
@@ -359,12 +359,12 @@ class Morosidad extends Component
         $saldoFormateado = '$' . number_format($saldoPendiente, 2, ',', '.');
 
         if ($esMayorDeEdad) {
-            $mensaje = " *Recordatorio de Pago - U.E VARGAS II*\n\n";
+            $mensaje = " *Recordatorio de Pago - U.E JOSE MARIA VARGAS*\n\n";
             $mensaje .= "Estimado/a {$nombreEstudiante},\n\n";
             $mensaje .= "Le recordamos que tiene un saldo pendiente de *{$saldoFormateado}* en su matrícula.\n\n";
         } else {
             $representante = $estudiante->representante_nombres . ' ' . $estudiante->representante_apellidos;
-            $mensaje = "🔔 *Recordatorio de Pago - U.E VARGAS II*\n\n";
+            $mensaje = "🔔 *Recordatorio de Pago - U.E JOSE MARIA VARGAS*\n\n";
             $mensaje .= "Estimado/a {$representante},\n\n";
             $mensaje .= "Le recordamos que el estudiante *{$nombreEstudiante}* tiene un saldo pendiente de *{$saldoFormateado}* en su matrícula.\n\n";
         }
@@ -388,7 +388,7 @@ class Morosidad extends Component
 
         $mensaje .= "\n💳 Para realizar su pago, puede acercarse a nuestras oficinas o contactarnos.\n\n";
         $mensaje .= "Gracias por su atención.\n\n";
-        $mensaje .= "*U.E VARGAS II*";
+        $mensaje .= "*U.E JOSE MARIA VARGAS*";
 
         return $mensaje;
     }
@@ -402,12 +402,12 @@ class Morosidad extends Component
         $saldoFormateado = '$' . number_format($saldoPendiente, 2, ',', '.');
 
         if ($esMayorDeEdad) {
-            $mensaje = "🔔 *Recordatorio de Pago - U.E VARGAS II*\n\n";
+            $mensaje = "🔔 *Recordatorio de Pago - U.E JOSE MARIA VARGAS*\n\n";
             $mensaje .= "Estimado/a {$nombreEstudiante},\n\n";
             $mensaje .= "Tiene un saldo pendiente de *{$saldoFormateado}*\n\n";
         } else {
             $representante = $estudiante->representante_nombres . ' ' . $estudiante->representante_apellidos;
-            $mensaje = " *Recordatorio de Pago - U.E VARGAS II*\n\n";
+            $mensaje = " *Recordatorio de Pago - U.E JOSE MARIA VARGAS*\n\n";
             $mensaje .= "Estimado/a {$representante},\n\n";
             $mensaje .= "El estudiante *{$nombreEstudiante}* tiene saldo pendiente de *{$saldoFormateado}*\n\n";
         }
@@ -418,7 +418,7 @@ class Morosidad extends Component
         $mensaje .= "✅ Montos abonados\n";
         $mensaje .= "✅ Saldo restante por pagar\n\n";
         $mensaje .= "💳 Regularice su situación financiera a la brevedad.\n\n";
-        $mensaje .= "*U.E VARGAS II*";
+        $mensaje .= "*U.E JOSE MARIA VARGAS*";
 
         return $mensaje;
     }
