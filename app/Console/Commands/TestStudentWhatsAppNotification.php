@@ -167,7 +167,7 @@ class TestStudentWhatsAppNotification extends Command
         $message .= "**Código:** {$student->codigo}\n";
         $message .= "**Fecha:** {$accessDate}\n";
         $message .= "**Hora:** {$accessTime}\n";
-        $message .= "\n🏫 U.E JOSE MARIA VARGAS\n";
+        $message .= "\n🏫 INSTITUTO VARGAS II\n";
         $message .= "💡 Este es un mensaje automático";
 
         return $message;
