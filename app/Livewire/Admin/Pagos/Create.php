@@ -536,27 +536,10 @@ class Create extends Component
     public function checkWhatsAppStatus()
     {
         try {
-            $apiUrl = config('whatsapp.api_url', 'http://localhost:3001');
-            $apiKey = config('whatsapp.api_key', 'test-api-key-vargas-centro');
+            $whatsappService = app(\App\Services\WhatsAppService::class);
+            $status = $whatsappService->getStatus();
 
-            // Verificar si el servicio está disponible
-            $healthResponse = \Http::timeout(3)->get($apiUrl . '/health');
-            if (!$healthResponse->successful()) {
-                $this->whatsappStatus = 'disconnected';
-                return;
-                }
-
-                // Obtener estado de conexión
-                $response = \Http::withHeaders(['X-API-Key' => $apiKey])
-                ->timeout(5)
-                ->get($apiUrl . '/api/whatsapp/status');
-
-                if ($response->successful()) {
-                    $data = $response->json();
-                    $this->whatsappStatus = $data['connectionState'] ?? 'disconnected';
-            } else {
-                $this->whatsappStatus = 'disconnected';
-            }
+            $this->whatsappStatus = $status['connectionState'] ?? 'disconnected';
         } catch (\Exception $e) {
             $this->whatsappStatus = 'disconnected';
         }
