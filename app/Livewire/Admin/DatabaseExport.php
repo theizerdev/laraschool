@@ -103,12 +103,50 @@ class DatabaseExport extends Component
         'format' => ''
     ];
 
+    // Respaldos disponibles en el servidor (database/respaldos/)
+    public $serverBackups = [];
+
     public function mount()
     {
         $this->loadAvailableTables();
+        $this->loadServerBackups();
         $this->conditions = [
             ['column' => '', 'operator' => '=', 'value' => '', 'logic' => 'AND']
         ];
+    }
+
+    public function loadServerBackups()
+    {
+        $this->serverBackups = [];
+        $path = base_path('database/respaldos');
+        if (File::exists($path)) {
+            $files = File::files($path);
+            foreach ($files as $file) {
+                $ext = strtolower($file->getExtension());
+                $name = $file->getFilename();
+                if (in_array($ext, ['sql', 'gz', 'zip']) || str_ends_with(strtolower($name), '.sql.gz')) {
+                    $this->serverBackups[] = [
+                        'name' => $name,
+                        'path' => $file->getPathname(),
+                        'size' => $this->formatBytes($file->getSize()),
+                        'date' => date('d/m/Y h:i A', $file->getMTime()),
+                    ];
+                }
+            }
+            // Ordenar de más reciente a más antiguo
+            usort($this->serverBackups, fn($a, $b) => filemtime($b['path']) <=> filemtime($a['path']));
+        }
+    }
+
+    public function selectServerBackup(string $fileName)
+    {
+        $filePath = base_path('database/respaldos/' . $fileName);
+        if (!File::exists($filePath)) {
+            $this->addError('backupFile', 'El archivo no existe en el servidor: ' . $fileName);
+            return;
+        }
+
+        $this->processFileAndPreview($filePath, $fileName);
     }
 
     public function render()
@@ -144,9 +182,16 @@ class DatabaseExport extends Component
             'backupFile.max' => 'El archivo supera el límite máximo permitido de 64MB.',
         ]);
 
-        $originalName = $this->backupFile->getClientOriginalName();
+        $this->processFileAndPreview(
+            $this->backupFile->getRealPath(),
+            $this->backupFile->getClientOriginalName()
+        );
+    }
+
+    public function processFileAndPreview(string $rawUploadedPath, string $originalName)
+    {
         $originalLower = strtolower($originalName);
-        $sizeBytes = $this->backupFile->getSize();
+        $sizeBytes = filesize($rawUploadedPath);
 
         // Determinar formato y compresión
         $format = '';
@@ -175,7 +220,6 @@ class DatabaseExport extends Component
             File::makeDirectory($tempDir, 0775, true, true);
         }
 
-        $rawUploadedPath = $this->backupFile->getRealPath();
         $extractedSqlPath = $tempDir . '/dump.sql';
 
         try {
