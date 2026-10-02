@@ -206,8 +206,8 @@
                                 </div>
                             @enderror
 
-                            <!-- Botón de avance -->
-                            <div class="d-flex justify-content-end gap-2">
+                            <!-- Botón de avance para archivo subido -->
+                            <div class="d-flex justify-content-end gap-2 mb-4">
                                 <button 
                                     type="button" 
                                     wire:click="processUploadAndPreview" 
@@ -224,6 +224,61 @@
                                     </span>
                                 </button>
                             </div>
+
+                            <!-- Respaldos disponibles en el servidor (database/respaldos/) -->
+                            @if(!empty($serverBackups) && count($serverBackups) > 0)
+                                <div class="pt-4 border-top">
+                                    <div class="d-flex align-items-center justify-content-between mb-3">
+                                        <div>
+                                            <h6 class="mb-0 fw-bold d-flex align-items-center gap-2 text-dark">
+                                                <i class="ri ri-folder-database-line text-primary fs-5"></i>
+                                                <span>Respaldos almacenados en el servidor (database/respaldos/)</span>
+                                            </h6>
+                                            <small class="text-muted">Haga clic en cualquiera para cargarlo directamente sin tener que subirlo</small>
+                                        </div>
+                                        <span class="badge bg-label-primary">{{ count($serverBackups) }} archivo(s)</span>
+                                    </div>
+
+                                    <div class="list-group shadow-sm">
+                                        @foreach($serverBackups as $backup)
+                                            <div class="list-group-item list-group-item-action d-flex flex-wrap align-items-center justify-content-between p-3 gap-2 {{ $backup['name'] === '021020260236PM.sql' ? 'border-primary bg-primary bg-opacity-10' : '' }}">
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="avatar bg-primary bg-opacity-10 text-primary rounded p-2">
+                                                        <i class="ri ri-file-code-line fs-4"></i>
+                                                    </div>
+                                                    <div>
+                                                        <div class="fw-bold text-dark d-flex align-items-center gap-2">
+                                                            <span>{{ $backup['name'] }}</span>
+                                                            @if($backup['name'] === '021020260236PM.sql')
+                                                                <span class="badge bg-primary fs-8">Respaldo Destacado</span>
+                                                            @endif
+                                                        </div>
+                                                        <small class="text-muted">
+                                                            <i class="ri ri-hard-drive-line me-1"></i> {{ $backup['size'] }} &nbsp;|&nbsp;
+                                                            <i class="ri ri-calendar-line me-1"></i> {{ $backup['date'] }}
+                                                        </small>
+                                                    </div>
+                                                </div>
+
+                                                <button 
+                                                    type="button" 
+                                                    wire:click="selectServerBackup('{{ $backup['name'] }}')" 
+                                                    wire:loading.attr="disabled"
+                                                    class="btn {{ $backup['name'] === '021020260236PM.sql' ? 'btn-primary' : 'btn-outline-primary' }} btn-sm d-flex align-items-center gap-1 shadow-sm px-3"
+                                                >
+                                                    <span wire:loading.remove wire:target="selectServerBackup('{{ $backup['name'] }}')">
+                                                        <i class="ri ri-arrow-right-circle-line"></i> Cargar este respaldo
+                                                    </span>
+                                                    <span wire:loading wire:target="selectServerBackup('{{ $backup['name'] }}')">
+                                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                                        Cargando y analizando...
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
