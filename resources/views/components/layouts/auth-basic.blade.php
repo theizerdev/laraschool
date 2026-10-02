@@ -66,6 +66,7 @@
     <script src="/materialize/assets/js/config.js"></script>
 
     @stack('styles')
+    @livewireStyles
   </head>
 
   <body>
