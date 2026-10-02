@@ -1,155 +1,326 @@
 <div class="position-relative">
-  <div class="authentication-wrapper authentication-basic container-p-y p-4 p-sm-0">
-    <div class="authentication-inner py-6">
-      <!-- 2FA Verification -->
-      <div class="card p-md-7 p-1">
-        <!-- Logo -->
-        <div class="app-brand justify-content-center mt-5">
-          <a href="{{ url('/') }}" class="app-brand-link gap-2">
-            <span class="app-brand-logo demo">
-              <span class="text-primary">
-                <svg width="32" height="18" viewBox="0 0 38 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M30.0944 2.22569C29.0511 0.444187 26.7508 -0.172113 24.9566 0.849138C23.1623 1.87039 22.5536 4.14247 23.5969 5.92397L30.5368 17.7743C31.5801 19.5558 33.957 20.1721 35.7512 19.1509C37.4689 18.1296 38.0776 15.8575 37.0343 14.076L30.0944 2.22569Z"
-                    fill="currentColor" />
-                  <path
-                    d="M30.171 2.22569C29.1277 0.444187 26.8274 -0.172113 25.0332 0.849138C23.2389 1.87039 22.6302 4.14247 23.6735 5.92397L30.6134 17.7743C31.6567 19.5558 33.957 20.1721 35.7512 19.1509C37.5455 18.1296 38.1542 15.8575 37.1109 14.076L30.171 2.22569Z"
-                    fill="url(#paint0_linear_2989_100980)"
-                    fill-opacity="0.4" />
-                  <path
-                    d="M22.9676 2.22569C24.0109 0.444187 26.3112 -0.172113 28.1054 0.849138C29.8996 1.87039 30.5084 4.14247 29.4651 5.92397L22.5251 17.7743C21.4818 19.5558 19.1816 20.1721 17.3873 19.1509C15.5931 18.1296 14.9843 15.8575 16.0276 14.076L22.9676 2.22569Z"
-                    fill="currentColor" />
-                  <path
-                    d="M14.9558 2.22569C13.9125 0.444187 11.6122 -0.172113 9.818 0.849138C8.02377 1.87039 7.41502 4.14247 8.45833 5.92397L15.3983 17.7743C16.4416 19.5558 18.7418 20.1721 20.5361 19.1509C22.3303 18.1296 22.9391 15.8575 21.8958 14.076L14.9558 2.22569Z"
-                    fill="currentColor" />
-                  <path
-                    d="M14.9558 2.22569C13.9125 0.444187 11.6122 -0.172113 9.818 0.849138C8.02377 1.87039 7.41502 4.14247 8.45833 5.92397L15.3983 17.7743C16.4416 19.5558 18.7418 20.1721 20.5361 19.1509C22.3303 18.1296 22.9391 15.8575 21.8958 14.076L14.9558 2.22569Z"
-                    fill="url(#paint1_linear_2989_100980)"
-                    fill-opacity="0.4" />
-                  <path
-                    d="M7.82901 2.22569C8.87231 0.444187 11.1726 -0.172113 12.9668 0.849138C14.7611 1.87039 15.3698 4.14247 14.3265 5.92397L7.38656 17.7743C6.34325 19.5558 4.04298 20.1721 2.24875 19.1509C0.454514 18.1296 -0.154233 15.8575 0.88907 14.076L7.82901 2.22569Z"
-                    fill="currentColor" />
-                  <defs>
-                    <linearGradient
-                      id="paint0_linear_2989_100980"
-                      x1="5.36642"
-                      y1="0.849138"
-                       x2="10.532"
-                      y2="24.104"
-                       gradientUnits="userSpaceOnUse">
-                      <stop offset="0" stop-opacity="1" />
-                      <stop offset="1" stop-opacity="0" />
-                    </linearGradient>
-                    <linearGradient
-                      id="paint1_linear_2989_100980"
-                      x1="5.19475"
-                       y1="0.849139"
-                       x2="10.3357"
-                       y2="24.1155"
-                       gradientUnits="userSpaceOnUse">
-                      <stop offset="0" stop-opacity="1" />
-                      <stop offset="1" stop-opacity="0" />
-                    </linearGradient>
-                  </defs>
-                </svg>
+  <div class="authentication-wrapper authentication-cover">
+    <div class="authentication-inner row m-0 min-vh-100 w-100">
+
+      <!-- Left Hero Column (Image & Institutional Showcase) -->
+      <div class="d-none d-lg-flex col-lg-7 col-xl-7 p-0 position-relative auth-cover-left-section">
+        <div class="auth-hero-backdrop"></div>
+        <div class="auth-hero-content d-flex flex-column justify-content-between p-8 p-xl-12 w-100 h-100 position-relative">
+          
+          <!-- Top Institutional Header -->
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <div class="auth-hero-emblem d-flex align-items-center justify-content-center">
+                <i class="icon-base ri ri-building-line text-white fs-4"></i>
+              </div>
+              <div>
+                <h5 class="text-white mb-0 fw-bold letter-spacing-1">INSTITUTO VARGAS II</h5>
+                <span class="badge bg-primary-subtle text-white border border-white-subtle px-2 py-1 rounded-pill small">
+                  <i class="icon-base ri ri-map-pin-2-line me-1"></i>Sede El Paraíso
+                </span>
+              </div>
+            </div>
+
+            <div class="auth-hero-status-pill d-flex align-items-center gap-2">
+              <span class="status-indicator-dot"></span>
+              <span class="text-white small fw-semibold">Seguridad 2FA</span>
+            </div>
+          </div>
+
+          <!-- Middle Value Proposition & Highlights -->
+          <div class="my-auto py-5">
+            <div class="mb-4">
+              <span class="auth-pill-tag mb-3 d-inline-flex align-items-center gap-2">
+                <i class="icon-base ri ri-shield-keyhole-line text-warning"></i> Capa Adicional de Protección
               </span>
+              <h1 class="display-6 text-white fw-bolder mb-3 auth-hero-title">
+                Protección de <span class="auth-text-gradient">Doble Factor</span> para tu Cuenta
+              </h1>
+              <p class="text-white-75 fs-6 mb-4 max-w-600">
+                Garantizamos que solo personal autorizado tenga acceso a registros estudiantiles, calificaciones y transacciones financieras.
+              </p>
+            </div>
+
+            <!-- Glassmorphism Feature Cards -->
+            <div class="row g-3 max-w-650">
+              <div class="col-sm-4">
+                <div class="auth-glass-feature-card">
+                  <div class="feature-icon-wrapper bg-primary-subtle text-primary">
+                    <i class="icon-base ri ri-smartphone-line"></i>
+                  </div>
+                  <h6 class="text-white mb-1 fw-semibold">Google Authenticator</h6>
+                  <p class="text-white-50 small mb-0">Usa tu aplicación de autenticación vinculada</p>
+                </div>
+              </div>
+
+              <div class="col-sm-4">
+                <div class="auth-glass-feature-card">
+                  <div class="feature-icon-wrapper bg-success-subtle text-success">
+                    <i class="icon-base ri ri-time-line"></i>
+                  </div>
+                  <h6 class="text-white mb-1 fw-semibold">Código Temporal</h6>
+                  <p class="text-white-50 small mb-0">Clave dinámica de 6 dígitos con expiración rápida</p>
+                </div>
+              </div>
+
+              <div class="col-sm-4">
+                <div class="auth-glass-feature-card">
+                  <div class="feature-icon-wrapper bg-warning-subtle text-warning">
+                    <i class="icon-base ri ri-lock-password-line"></i>
+                  </div>
+                  <h6 class="text-white mb-1 fw-semibold">Cifrado Militar</h6>
+                  <p class="text-white-50 small mb-0">Cero almacenamiento de secretos en texto plano</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Institutional Footer -->
+          <div class="d-flex align-items-center justify-content-between pt-4 border-top border-white-15">
+            <span class="text-white-50 small">
+              <i class="icon-base ri ri-shield-check-line me-1"></i> Sesión Protegida
             </span>
-            <span class="app-brand-text demo text-heading fw-semibold">{{ config('app.name', 'Laravel') }}</span>
-          </a>
+            <span class="text-white-50 small">
+              U.E. Vargas II • Todos los derechos reservados
+            </span>
+          </div>
+
         </div>
-        <!-- /Logo -->
+      </div>
+      <!-- /Left Hero Column -->
 
-        <div class="card-body mt-1">
-          <h4 class="mb-1">{{ __('auth_ui.two_factor_title') }}</h4>
-          <p class="mb-5">{{ __('auth_ui.two_factor_subtitle') }}</p>
+      <!-- Right Form Column -->
+      <div class="col-12 col-lg-5 col-xl-5 d-flex align-items-center justify-content-center authentication-bg p-6 p-sm-10 p-md-12 min-vh-100">
+        <div class="w-100 auth-form-container">
+          
+          <!-- Brand and Logo for Mobile & Top Display -->
+          <div class="d-flex align-items-center gap-3 mb-6">
+            <div class="auth-form-brand-icon">
+              <svg width="34" height="22" viewBox="0 0 38 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M30.0944 2.22569C29.0511 0.444187 26.7508 -0.172113 24.9566 0.849138C23.1623 1.87039 22.5536 4.14247 23.5969 5.92397L30.5368 17.7743C31.5801 19.5558 33.8804 20.1721 35.6746 19.1509C37.4689 18.1296 38.0776 15.8575 37.0343 14.076L30.0944 2.22569Z" fill="var(--bs-primary, #696cff)" />
+                <path d="M22.9676 2.22569C24.0109 0.444187 26.3112 -0.172113 28.1054 0.849138C29.8996 1.87039 30.5084 4.14247 29.4651 5.92397L22.5251 17.7743C21.4818 19.5558 19.1816 20.1721 17.3873 19.1509C15.5931 18.1296 14.9843 15.8575 16.0276 14.076L22.9676 2.22569Z" fill="var(--bs-primary, #696cff)" opacity="0.75" />
+                <path d="M14.9558 2.22569C13.9125 0.444187 11.6122 -0.172113 9.818 0.849138C8.02377 1.87039 7.41502 4.14247 8.45833 5.92397L15.3983 17.7743C16.4416 19.5558 18.7418 20.1721 20.5361 19.1509C22.3303 18.1296 22.9391 15.8575 21.8958 14.076L14.9558 2.22569Z" fill="var(--bs-primary, #696cff)" opacity="0.5" />
+                <path d="M7.82901 2.22569C8.87231 0.444187 11.1726 -0.172113 12.9668 0.849138C14.7611 1.87039 15.3698 4.14247 14.3265 5.92397L7.38656 17.7743C6.34325 19.5558 4.04298 20.1721 2.24875 19.1509C0.454514 18.1296 -0.154233 15.8575 0.88907 14.076L7.82901 2.22569Z" fill="var(--bs-primary, #696cff)" opacity="0.25" />
+              </svg>
+            </div>
+            <div>
+              <span class="d-block fw-bold text-heading fs-5 lh-1">INSTITUTO VARGAS II</span>
+              <span class="text-muted small">Sede El Paraíso • Verificación 2FA</span>
+            </div>
+          </div>
 
+          <!-- Header -->
+          <div class="mb-5">
+            <h3 class="mb-1 fw-bold text-heading">{{ __('auth_ui.two_factor_title') }} 🔐</h3>
+            <p class="mb-0 text-muted">
+              {{ __('auth_ui.two_factor_subtitle') }}
+            </p>
+          </div>
+
+          <!-- Error Alert -->
           @if (session()->has('error'))
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-              {{ session('error') }}
+            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+              <div class="d-flex align-items-center">
+                <i class="icon-base ri ri-error-warning-line me-2 fs-5"></i>
+                <div>{{ session('error') }}</div>
+              </div>
               <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
           @endif
 
+          <!-- Form -->
           <form wire:submit.prevent="verifyCode" id="twoFactorForm">
             <input type="hidden" wire:model="latitude" id="latitude">
             <input type="hidden" wire:model="longitude" id="longitude">
 
-            <div class="mb-5">
+            <div class="mb-4">
               <div class="form-floating form-floating-outline">
                 <input
                   type="text"
-                  class="form-control"
+                  class="form-control text-center fs-3 letter-spacing-4 fw-bold @error('code') is-invalid @enderror"
                   id="code"
                   name="code"
                   wire:model="code"
-                  placeholder="{{ __('auth_ui.two_factor_code') }}"
+                  placeholder="000000"
                   autofocus
                   maxlength="6"
                   inputmode="numeric"
                   pattern="[0-9]*" />
                 <label for="code">{{ __('auth_ui.two_factor_code') }}</label>
               </div>
-              <div class="form-text">{{ __('auth_ui.two_factor_subtitle') }}</div>
+              @error('code')
+                <div class="invalid-feedback d-block mt-1">
+                  <i class="icon-base ri ri-alert-line me-1"></i>{{ $message }}
+                </div>
+              @enderror
+              <div class="form-text mt-2 text-center text-muted small">
+                Ingresa el código numérico generado en tu dispositivo autenticador.
+              </div>
             </div>
 
-            <div class="mb-5">
-              <button class="btn btn-primary d-grid w-100" type="submit">{{ __('auth_ui.verify_2fa') }}</button>
+            <div class="mb-4">
+              <button class="btn btn-primary btn-lg d-grid w-100 shadow-sm auth-submit-btn" type="submit" wire:loading.attr="disabled">
+                <span wire:loading.remove wire:target="verifyCode" class="d-flex align-items-center justify-content-center gap-2">
+                  <span>{{ __('auth_ui.verify_2fa') }}</span>
+                  <i class="icon-base ri ri-arrow-right-line"></i>
+                </span>
+                <span wire:loading wire:target="verifyCode" class="d-flex align-items-center justify-content-center gap-2">
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <span>Verificando código...</span>
+                </span>
+              </button>
             </div>
           </form>
 
-          <div class="text-center">
-            <a href="{{ route('login') }}">{{ __('auth_ui.back_to_login') }}</a>
+          <div class="text-center mt-4">
+            <a href="{{ route('login') }}" class="d-inline-flex align-items-center text-primary text-decoration-none fw-medium small hover-underline">
+              <i class="icon-base ri ri-arrow-left-line me-1"></i>
+              {{ __('auth_ui.back_to_login') }}
+            </a>
           </div>
+
+          <!-- Institutional Copyright -->
+          <div class="text-center mt-6">
+            <p class="text-muted small mb-0">
+              © {{ date('Y') }} Instituto Vargas II • El Paraíso. Todos los derechos reservados.
+            </p>
+          </div>
+
         </div>
       </div>
-      <!-- /2FA Verification -->
+      <!-- /Right Form Column -->
+
     </div>
   </div>
 </div>
 
+@push('styles')
+<style>
+  .auth-cover-left-section {
+    background-color: #0f172a;
+    background-image: url('/assets/img/auth/login-campus.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+  }
+  .auth-hero-backdrop {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.82) 0%, rgba(30, 27, 75, 0.90) 100%);
+    backdrop-filter: blur(1.5px);
+    z-index: 1;
+  }
+  .auth-hero-content { z-index: 2; }
+  .auth-hero-emblem {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #696cff 0%, #3b3dbf 100%);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(105, 108, 255, 0.45);
+  }
+  .auth-hero-status-pill {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    padding: 0.35rem 0.85rem;
+    border-radius: 50rem;
+  }
+  .status-indicator-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #71dd37;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #71dd37;
+  }
+  .auth-pill-tag {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    padding: 0.4rem 1rem;
+    border-radius: 50rem;
+    font-size: 0.825rem;
+    font-weight: 500;
+  }
+  .auth-hero-title {
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+  .auth-text-gradient {
+    background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 50%, #fbcfe8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .text-white-75 { color: rgba(255, 255, 255, 0.85); }
+  .text-white-50 { color: rgba(255, 255, 255, 0.65); }
+  .border-white-15 { border-color: rgba(255, 255, 255, 0.15) !important; }
+  .auth-glass-feature-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    padding: 1.1rem;
+    height: 100%;
+  }
+  .feature-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .max-w-600 { max-width: 600px; }
+  .max-w-650 { max-width: 650px; }
+  .auth-form-container { max-width: 440px; }
+  .auth-form-brand-icon {
+    width: 46px;
+    height: 46px;
+    background: rgba(105, 108, 255, 0.12);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .letter-spacing-4 { letter-spacing: 0.35em; }
+  .hover-underline:hover { text-decoration: underline !important; }
+</style>
+@endpush
+
 @push('scripts')
-  <script>
-    document.addEventListener('livewire:initialized', () => {
-      // Al hacer clic en el botón
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            // Si tiene éxito, emite un evento con las coordenadas
-            @this.latitude = position.coords.latitude;
-            @this.longitude = position.coords.longitude;
-          },
-          (error) => {
-            // Si hay un error, emite un evento con el mensaje de error
-            @this.dispatch('setError', {
-              error: error.message
-            });
-          }
-        );
-      } else {
-        // El navegador no soporta la geolocalización
-        @this.dispatch('setError', {
-          error: "Geolocalización no es soportada por este navegador."
-        });
-      }
-
-      // Manejar entrada de código con auto-focus y auto-submit
-      const codeInput = document.getElementById('code');
-      if (codeInput) {
-        codeInput.addEventListener('input', function(e) {
-          // Solo permitir números
-          this.value = this.value.replace(/[^0-9]/g, '');
-          
-          // Si se ingresan 6 dígitos, enviar automáticamente
-          if (this.value.length === 6) {
-            @this.verifyCode();
-          }
-        });
-
-        // Auto-focus en el primer campo vacío
-        if (!codeInput.value) {
-          codeInput.focus();
+<script>
+  document.addEventListener('livewire:initialized', () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          @this.latitude = position.coords.latitude;
+          @this.longitude = position.coords.longitude;
+        },
+        (error) => {
+          @this.dispatch('setError', {
+            error: error.message
+          });
         }
-      }
-    });
-  </script>
+      );
+    } else {
+      @this.dispatch('setError', {
+        error: "Geolocalización no es soportada por este navegador."
+      });
+    }
+
+    const codeInput = document.getElementById('code');
+    if (codeInput) {
+      codeInput.addEventListener('input', function(e) {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        if (this.value.length === 6) {
+          @this.verifyCode();
+        }
+      });
+    }
+  });
+</script>
 @endpush

@@ -1,44 +1,175 @@
 <div class="position-relative">
-  <div class="authentication-wrapper authentication-basic container-p-y p-4 p-sm-0">
-    <div class="authentication-inner py-6">
-      <!-- Login -->
-      <div class="card p-md-7 p-1">
-        <!-- Logo -->
-        <div class="app-brand justify-content-center mt-5">
-          <a href="{{ url('/') }}" class="app-brand-link gap-2">
-           
-            <span class="app-brand-text demo text-heading fw-semibold">{{ config('app.name', 'Laravel') }}</span>
-          </a>
+  <div class="authentication-wrapper authentication-cover">
+    <div class="authentication-inner row m-0 min-vh-100 w-100">
+
+      <!-- Left Hero Column (Image & Institutional Showcase) -->
+      <div class="d-none d-lg-flex col-lg-7 col-xl-7 p-0 position-relative auth-cover-left-section">
+        <div class="auth-hero-backdrop"></div>
+        <div class="auth-hero-content d-flex flex-column justify-content-between p-8 p-xl-12 w-100 h-100 position-relative">
+          
+          <!-- Top Institutional Header -->
+          <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+              <div class="auth-hero-emblem d-flex align-items-center justify-content-center">
+                <i class="icon-base ri ri-building-line text-white fs-4"></i>
+              </div>
+              <div>
+                <h5 class="text-white mb-0 fw-bold letter-spacing-1">INSTITUTO VARGAS II</h5>
+                <span class="badge bg-primary-subtle text-white border border-white-subtle px-2 py-1 rounded-pill small">
+                  <i class="icon-base ri ri-map-pin-2-line me-1"></i>Sede El Paraíso
+                </span>
+              </div>
+            </div>
+
+            <div class="auth-hero-status-pill d-flex align-items-center gap-2">
+              <span class="status-indicator-dot"></span>
+              <span class="text-white small fw-semibold">Sistema Activo</span>
+            </div>
+          </div>
+
+          <!-- Middle Value Proposition & Highlights -->
+          <div class="my-auto py-5">
+            <div class="mb-4">
+              <span class="auth-pill-tag mb-3 d-inline-flex align-items-center gap-2">
+                <i class="icon-base ri ri-graduation-cap-line text-warning"></i> Plataforma Académica & Administrativa
+              </span>
+              <h1 class="display-6 text-white fw-bolder mb-3 auth-hero-title">
+                Formando con <span class="auth-text-gradient">Excelencia</span> e Innovación Educativa
+              </h1>
+              <p class="text-white-75 fs-6 mb-4 max-w-600">
+                Gestión integral de inscripciones, control de notas, administración de pagos y comunicación escolar en un entorno seguro y moderno.
+              </p>
+            </div>
+
+            <!-- Glassmorphism Feature Cards -->
+            <div class="row g-3 max-w-650">
+              <div class="col-sm-4">
+                <div class="auth-glass-feature-card">
+                  <div class="feature-icon-wrapper bg-primary-subtle text-primary">
+                    <i class="icon-base ri ri-user-star-line"></i>
+                  </div>
+                  <h6 class="text-white mb-1 fw-semibold">Control de Alumnos</h6>
+                  <p class="text-white-50 small mb-0">Matrículas, historial y control de asistencia</p>
+                </div>
+              </div>
+
+              <div class="col-sm-4">
+                <div class="auth-glass-feature-card">
+                  <div class="feature-icon-wrapper bg-success-subtle text-success">
+                    <i class="icon-base ri ri-wallet-3-line"></i>
+                  </div>
+                  <h6 class="text-white mb-1 fw-semibold">Pagos & Solvencias</h6>
+                  <p class="text-white-50 small mb-0">Gestión de cuotas, tasas BCV y comprobantes</p>
+                </div>
+              </div>
+
+              <div class="col-sm-4">
+                <div class="auth-glass-feature-card">
+                  <div class="feature-icon-wrapper bg-warning-subtle text-warning">
+                    <i class="icon-base ri ri-shield-check-line"></i>
+                  </div>
+                  <h6 class="text-white mb-1 fw-semibold">Seguridad Total</h6>
+                  <p class="text-white-50 small mb-0">Autenticación en 2 pasos y sesiones cifradas</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Institutional Footer -->
+          <div class="d-flex align-items-center justify-content-between pt-4 border-top border-white-15">
+            <span class="text-white-50 small">
+              <i class="icon-base ri ri-calendar-line me-1"></i> Período Escolar Activo
+            </span>
+            <span class="text-white-50 small">
+              U.E. Vargas II • Todos los derechos reservados
+            </span>
+          </div>
+
         </div>
-        <!-- /Logo -->
+      </div>
+      <!-- /Left Hero Column -->
 
-        <div class="card-body mt-1">
-          <h4 class="mb-1">¡{{ __('auth_ui.login_title') }}s! 👋</h4>
-          <p class="mb-5">{{ __('auth_ui.login_subtitle') }}</p>
+      <!-- Right Form Column -->
+      <div class="col-12 col-lg-5 col-xl-5 d-flex align-items-center justify-content-center authentication-bg p-6 p-sm-10 p-md-12 min-vh-100">
+        <div class="w-100 auth-form-container">
+          
+          <!-- Brand and Logo for Mobile & Top Display -->
+          <div class="d-flex align-items-center gap-3 mb-6">
+            <div class="auth-form-brand-icon">
+              <svg width="34" height="22" viewBox="0 0 38 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M30.0944 2.22569C29.0511 0.444187 26.7508 -0.172113 24.9566 0.849138C23.1623 1.87039 22.5536 4.14247 23.5969 5.92397L30.5368 17.7743C31.5801 19.5558 33.8804 20.1721 35.6746 19.1509C37.4689 18.1296 38.0776 15.8575 37.0343 14.076L30.0944 2.22569Z" fill="var(--bs-primary, #696cff)" />
+                <path d="M22.9676 2.22569C24.0109 0.444187 26.3112 -0.172113 28.1054 0.849138C29.8996 1.87039 30.5084 4.14247 29.4651 5.92397L22.5251 17.7743C21.4818 19.5558 19.1816 20.1721 17.3873 19.1509C15.5931 18.1296 14.9843 15.8575 16.0276 14.076L22.9676 2.22569Z" fill="var(--bs-primary, #696cff)" opacity="0.75" />
+                <path d="M14.9558 2.22569C13.9125 0.444187 11.6122 -0.172113 9.818 0.849138C8.02377 1.87039 7.41502 4.14247 8.45833 5.92397L15.3983 17.7743C16.4416 19.5558 18.7418 20.1721 20.5361 19.1509C22.3303 18.1296 22.9391 15.8575 21.8958 14.076L14.9558 2.22569Z" fill="var(--bs-primary, #696cff)" opacity="0.5" />
+                <path d="M7.82901 2.22569C8.87231 0.444187 11.1726 -0.172113 12.9668 0.849138C14.7611 1.87039 15.3698 4.14247 14.3265 5.92397L7.38656 17.7743C6.34325 19.5558 4.04298 20.1721 2.24875 19.1509C0.454514 18.1296 -0.154233 15.8575 0.88907 14.076L7.82901 2.22569Z" fill="var(--bs-primary, #696cff)" opacity="0.25" />
+              </svg>
+            </div>
+            <div>
+              <span class="d-block fw-bold text-heading fs-5 lh-1">INSTITUTO VARGAS II</span>
+              <span class="text-muted small">Sede El Paraíso • Acceso al Sistema</span>
+            </div>
+          </div>
 
+          <!-- Welcome Header -->
+          <div class="mb-5">
+            <h3 class="mb-1 fw-bold text-heading">¡Bienvenidos! 👋</h3>
+            <p class="mb-0 text-muted">
+              Por favor inicia sesión con tu usuario o correo electrónico para continuar.
+            </p>
+          </div>
+
+          <!-- Session Flash Alerts -->
+          @if (session()->has('status'))
+            <div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+              <div class="d-flex align-items-center">
+                <i class="icon-base ri ri-checkbox-circle-line me-2 fs-5"></i>
+                <div>{{ session('status') }}</div>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          @endif
+
+          @if (session()->has('error'))
+            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+              <div class="d-flex align-items-center">
+                <i class="icon-base ri ri-error-warning-line me-2 fs-5"></i>
+                <div>{{ session('error') }}</div>
+              </div>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          @endif
+
+          <!-- Login Form -->
           <form wire:submit.prevent="authenticate" id="loginForm">
             <input type="hidden" wire:model="latitude" id="latitude">
             <input type="hidden" wire:model="longitude" id="longitude">
 
-            <div class="form-floating form-floating-outline mb-5 form-control-validation">
+            <!-- Username / Email Field -->
+            <div class="form-floating form-floating-outline mb-4 form-control-validation">
               <input
                 type="text"
                 class="form-control @if($hasError('email')) is-invalid @endif"
                 id="email"
                 name="email"
                 wire:model="email"
-                placeholder="{{ config('app.locale') == 'es' ? 'Ingresa tu nombre de usuario o email' : 'Enter your username or email' }}"
+                placeholder="{{ config('app.locale') == 'es' ? 'Ingresa tu usuario o correo' : 'Enter username or email' }}"
+                autocomplete="username"
                 autofocus />
               <label for="email">
-             @if(config('app.locale') == 'es')Nombre de usuario o Email @else Username or Email @endif</label>
+                <i class="icon-base ri ri-user-line me-1"></i>
+                @if(config('app.locale') == 'es')Nombre de usuario o Email @else Username or Email @endif
+              </label>
               @if($hasError('email'))
-                <div class="invalid-feedback d-block">{{ $getError('email') }}</div>
+                <div class="invalid-feedback d-block mt-1">
+                  <i class="icon-base ri ri-alert-line me-1"></i>{{ $getError('email') }}
+                </div>
               @endif
             </div>
-            <div class="mb-5">
+
+            <!-- Password Field -->
+            <div class="mb-4">
               <div class="form-password-toggle form-control-validation">
                 <div class="input-group input-group-merge">
-                  <div class="form-floating form-floating-outline">
+                  <div class="form-floating form-floating-outline flex-grow-1">
                     <input
                       type="password"
                       id="password"
@@ -46,88 +177,306 @@
                       name="password"
                       wire:model="password"
                       placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
+                      autocomplete="current-password"
                       aria-describedby="password" />
-                    <label for="password">{{ __('auth_ui.password') }}</label>
-
+                    <label for="password">
+                      <i class="icon-base ri ri-lock-line me-1"></i>
+                      {{ __('auth_ui.password') }}
+                    </label>
                   </div>
-                  <span class="input-group-text cursor-pointer"
-                    ><i class="icon-base ri ri-eye-off-line icon-20px"></i
-                  ></span>
+                  <span class="input-group-text cursor-pointer auth-password-toggle" id="togglePassword">
+                    <i class="icon-base ri ri-eye-off-line icon-20px text-muted"></i>
+                  </span>
                 </div>
-                 @if($hasError('password'))
-                      <div class="invalid-feedback d-block">{{ $getError('password') }}</div>
-                    @endif
+                @if($hasError('password'))
+                  <div class="invalid-feedback d-block mt-1">
+                    <i class="icon-base ri ri-alert-line me-1"></i>{{ $getError('password') }}
+                  </div>
+                @endif
               </div>
             </div>
-            <div class="mb-5 d-flex justify-content-between mt-5">
-              <div class="form-check mt-2">
+
+            <!-- Options Row (Remember & Forgot) -->
+            <div class="d-flex justify-content-between align-items-center mb-5">
+              <div class="form-check m-0">
                 <input class="form-check-input" type="checkbox" id="remember-me" wire:model="remember" />
-                <label class="form-check-label" for="remember-me"> {{ __('auth_ui.remember_me') }} </label>
+                <label class="form-check-label cursor-pointer user-select-none" for="remember-me">
+                  {{ __('auth_ui.remember_me') }}
+                </label>
               </div>
-              <a href="{{ route('password.request') }}" class="float-end mb-1 mt-2">
-                <span>{{ __('auth_ui.forgot_password') }}</span>
-              </a>
+              @if (Route::has('password.request'))
+                <a href="{{ route('password.request') }}" class="text-primary fw-medium small text-decoration-none hover-underline">
+                  {{ __('auth_ui.forgot_password') }}
+                </a>
+              @endif
             </div>
-            <div class="mb-5">
-              <button class="btn btn-primary d-grid w-100" type="submit">{{ __('auth_ui.login_button') }}</button>
+
+            <!-- Submit Button -->
+            <div class="mb-4">
+              <button class="btn btn-primary btn-lg d-grid w-100 shadow-sm auth-submit-btn" type="submit" wire:loading.attr="disabled">
+                <span wire:loading.remove wire:target="authenticate" class="d-flex align-items-center justify-content-center gap-2">
+                  <span>{{ __('auth_ui.login_button') }}</span>
+                  <i class="icon-base ri ri-arrow-right-line"></i>
+                </span>
+                <span wire:loading wire:target="authenticate" class="d-flex align-items-center justify-content-center gap-2">
+                  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  <span>Verificando credenciales...</span>
+                </span>
+              </button>
             </div>
           </form>
 
-          
-
-          <div class="divider my-5">
-            <div class="divider-text">or</div>
+          <!-- Security Badge Notice -->
+          <div class="auth-security-notice mt-5 p-3 rounded-3 d-flex align-items-center gap-3">
+            <div class="auth-security-icon d-flex align-items-center justify-content-center">
+              <i class="icon-base ri ri-shield-check-line text-success fs-5"></i>
+            </div>
+            <div>
+              <div class="fw-semibold text-heading small">Conexión Segura SSL/TLS</div>
+              <div class="text-muted small lh-sm">
+                Tus datos de acceso están encriptados y protegidos con estándares de alta seguridad.
+              </div>
+            </div>
           </div>
 
-          <div class="d-flex justify-content-center gap-2">
-            <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-facebook">
-              <i class="icon-base ri ri-facebook-fill icon-18px"></i>
-            </a>
-
-            <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-twitter">
-              <i class="icon-base ri ri-twitter-fill icon-18px"></i>
-            </a>
-
-            <a href="javascript:;" class="btn btn-icon rounded-circle btn-text-github">
-              <i class="icon-base ri ri-github-fill icon-18px"></i>
-            </a>
-
-            <a href="javascript:;" class="btn btn-icon btn-lg rounded-pill btn-text-google-plus">
-              <i class="icon-base ri ri-google-fill icon-18px"></i>
-            </a>
+          <!-- Institutional Copyright -->
+          <div class="text-center mt-6">
+            <p class="text-muted small mb-0">
+              © {{ date('Y') }} Instituto Vargas II • El Paraíso. Todos los derechos reservados.
+            </p>
           </div>
+
         </div>
       </div>
-      <!-- /Login -->
+      <!-- /Right Form Column -->
 
     </div>
   </div>
 </div>
-  @push('scripts')
-    <script>
-        document.addEventListener('livewire:initialized', () => {
-        // Al hacer clic en el botón
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        // Si tiene éxito, emite un evento con las coordenadas
-                         @this.latitude = position.coords.latitude;
-                         @this.longitude = position.coords.longitude;
 
-                    },
-                    (error) => {
-                        // Si hay un error, emite un evento con el mensaje de error
-                        @this.dispatch('setError', {
-                            error: error.message
-                        });
-                    }
-                );
-            } else {
-                // El navegador no soporta la geolocalización
-                @this.dispatch('setError', {
-                    error: "Geolocalización no es soportada por este navegador."
-                });
-            }
-    });
-    </script>
-    @endpush
+@push('styles')
+<style>
+  /* Split Cover Authentication Styling */
+  .auth-cover-left-section {
+    background-color: #0f172a;
+    background-image: url('/assets/img/auth/login-campus.jpg');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+  }
+
+  .auth-hero-backdrop {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.82) 0%, rgba(30, 27, 75, 0.90) 100%);
+    backdrop-filter: blur(1.5px);
+    z-index: 1;
+  }
+
+  .auth-hero-content {
+    z-index: 2;
+  }
+
+  .auth-hero-emblem {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #696cff 0%, #3b3dbf 100%);
+    border-radius: 12px;
+    box-shadow: 0 4px 14px rgba(105, 108, 255, 0.45);
+  }
+
+  .auth-hero-status-pill {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    padding: 0.35rem 0.85rem;
+    border-radius: 50rem;
+  }
+
+  .status-indicator-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #71dd37;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #71dd37;
+    animation: pulseDot 2s infinite ease-in-out;
+  }
+
+  @keyframes pulseDot {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.6; }
+  }
+
+  .auth-pill-tag {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    padding: 0.4rem 1rem;
+    border-radius: 50rem;
+    font-size: 0.825rem;
+    font-weight: 500;
+  }
+
+  .auth-hero-title {
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .auth-text-gradient {
+    background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 50%, #fbcfe8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .text-white-75 {
+    color: rgba(255, 255, 255, 0.85);
+  }
+
+  .text-white-50 {
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .border-white-15 {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+  }
+
+  .auth-glass-feature-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    padding: 1.1rem;
+    transition: all 0.3s ease;
+    height: 100%;
+  }
+
+  .auth-glass-feature-card:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+  }
+
+  .feature-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .max-w-600 {
+    max-width: 600px;
+  }
+
+  .max-w-650 {
+    max-width: 650px;
+  }
+
+  /* Right Form Section Styling */
+  .auth-form-container {
+    max-width: 440px;
+  }
+
+  .auth-form-brand-icon {
+    width: 46px;
+    height: 46px;
+    background: rgba(105, 108, 255, 0.12);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .auth-submit-btn {
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 0.75rem 1.25rem;
+    transition: all 0.25s ease;
+  }
+
+  .auth-submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(105, 108, 255, 0.35) !important;
+  }
+
+  .auth-security-notice {
+    background: rgba(105, 108, 255, 0.04);
+    border: 1px solid rgba(105, 108, 255, 0.14);
+  }
+
+  .auth-security-icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 8px;
+    background: rgba(113, 221, 55, 0.12);
+  }
+
+  .hover-underline:hover {
+    text-decoration: underline !important;
+  }
+
+  /* Smooth Inputs Focus */
+  .form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(105, 108, 255, 0.15);
+  }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+  // Password Visibility Toggle
+  document.addEventListener('DOMContentLoaded', function () {
+    const toggleBtn = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+
+    if (toggleBtn && passwordInput) {
+      toggleBtn.addEventListener('click', function () {
+        const icon = toggleBtn.querySelector('i');
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          if (icon) {
+            icon.classList.remove('ri-eye-off-line');
+            icon.classList.add('ri-eye-line');
+          }
+        } else {
+          passwordInput.type = 'password';
+          if (icon) {
+            icon.classList.remove('ri-eye-line');
+            icon.classList.add('ri-eye-off-line');
+          }
+        }
+      });
+    }
+  });
+
+  // Geolocation Listener for Livewire
+  document.addEventListener('livewire:initialized', () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          @this.latitude = position.coords.latitude;
+          @this.longitude = position.coords.longitude;
+        },
+        (error) => {
+          @this.dispatch('setError', {
+            error: error.message
+          });
+        }
+      );
+    } else {
+      @this.dispatch('setError', {
+        error: "Geolocalización no es soportada por este navegador."
+      });
+    }
+  });
+</script>
+@endpush
