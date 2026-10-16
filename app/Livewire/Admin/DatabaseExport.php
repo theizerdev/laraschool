@@ -908,10 +908,13 @@ class DatabaseExport extends Component
 
     private function generateSqlExportFile(string $destFilePath)
     {
+        @set_time_limit(300);
         $handle = fopen($destFilePath, 'w');
         if (!$handle) {
             throw new \Exception('No se pudo crear el archivo temporal de exportación.');
         }
+
+        $pdo = DB::getPdo();
 
         // Encabezado
         fwrite($handle, "-- ============================================================\n");
@@ -942,6 +945,7 @@ class DatabaseExport extends Component
                 $createSql = $createObj->{'Create Table'};
                 fwrite($handle, $createSql . ";\n\n");
             } catch (\Throwable $e) {
+                Log::warning("Error al obtener estructura de {$tbl}: " . $e->getMessage());
                 fwrite($handle, "-- Error al obtener estructura de {$tbl}: " . $e->getMessage() . "\n\n");
                 continue;
             }
@@ -968,26 +972,30 @@ class DatabaseExport extends Component
                     }
                 }
 
-                $query->chunk(500, function($records) use ($handle, $tbl) {
-                    if ($records->isEmpty()) return;
+                $hasRows = false;
+                foreach ($query->cursor() as $record) {
+                    $hasRows = true;
+                    $data = (array) $record;
+                    $columns = array_keys($data);
+                    $escapedValues = array_map(function($val) use ($pdo) {
+                        if ($val === null) return 'NULL';
+                        if (is_int($val) || is_float($val)) return (string)$val;
+                        if (is_bool($val)) return $val ? '1' : '0';
+                        if (is_numeric($val) && !str_starts_with((string)$val, '0')) return (string)$val;
+                        $quoted = $pdo->quote((string)$val);
+                        return $quoted !== false ? $quoted : ("'" . addslashes((string)$val) . "'");
+                    }, array_values($data));
 
-                    foreach ($records as $record) {
-                        $data = (array) $record;
-                        $columns = array_keys($data);
-                        $escapedValues = array_map(function($val) {
-                            if ($val === null) return 'NULL';
-                            if (is_numeric($val) && !str_starts_with((string)$val, '0')) return $val;
-                            return "'" . addslashes((string)$val) . "'";
-                        }, array_values($data));
+                    $sql = "INSERT INTO `{$tbl}` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $escapedValues) . ");\n";
+                    fwrite($handle, $sql);
+                }
 
-                        $sql = "INSERT INTO `{$tbl}` (`" . implode('`, `', $columns) . "`) VALUES (" . implode(', ', $escapedValues) . ");\n";
-                        fwrite($handle, $sql);
-                    }
-                });
-
-                fwrite($handle, "\n");
+                if ($hasRows) {
+                    fwrite($handle, "\n");
+                }
 
             } catch (\Throwable $e) {
+                Log::warning("Error al exportar datos de {$tbl}: " . $e->getMessage());
                 fwrite($handle, "-- Error al exportar datos de {$tbl}: " . $e->getMessage() . "\n\n");
             }
         }
