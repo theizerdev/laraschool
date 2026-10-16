@@ -26,12 +26,46 @@
 
 $isDryRun = in_array('--dry-run', $argv);
 
-$pdoV = new PDO('mysql:host=127.0.0.1;port=3307;dbname=vargas', 'root', '', [
+function getEnvVal($key, $default = null) {
+    static $env = null;
+    if ($env === null) {
+        $env = [];
+        if (file_exists(__DIR__ . '/.env')) {
+            $lines = file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            foreach ($lines as $line) {
+                $trimmed = trim($line);
+                if ($trimmed === '' || str_starts_with($trimmed, '#')) continue;
+                if (str_contains($trimmed, '=')) {
+                    [$k, $v] = explode('=', $trimmed, 2);
+                    $env[trim($k)] = trim(trim($v), '"\'');
+                }
+            }
+        }
+    }
+    return $env[$key] ?? (getenv($key) !== false ? getenv($key) : $default);
+}
+
+// Configuración de base de datos principal desde .env
+$dbHost = getEnvVal('DB_HOST', '127.0.0.1');
+$dbPort = getEnvVal('DB_PORT', '3306');
+$dbName = getEnvVal('DB_DATABASE', 'vargas');
+$dbUser = getEnvVal('DB_USERNAME', 'root');
+$dbPass = getEnvVal('DB_PASSWORD', '');
+
+// Base temporal (por defecto en el mismo servidor)
+$tempDbName = 'vargas_sync_temp';
+foreach ($argv as $arg) {
+    if (str_starts_with($arg, '--temp-db=')) {
+        $tempDbName = substr($arg, 10);
+    }
+}
+
+$pdoV = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
 ]);
 
-$pdoT = new PDO('mysql:host=127.0.0.1;port=3307;dbname=vargas_sync_temp', 'root', '', [
+$pdoT = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$tempDbName};charset=utf8mb4", $dbUser, $dbPass, [
     PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
 ]);
